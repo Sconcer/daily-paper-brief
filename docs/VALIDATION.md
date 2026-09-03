@@ -66,6 +66,12 @@ while validating this public repository.
 
 ## Post-commit and remote checks
 
-Before publication, the final reachable Git history must pass the offline
-credential scan, local `HEAD` must equal `origin/main`, and the GitHub Actions
-CI run for that commit must succeed. The final handoff records those results.
+- The initial public root commit was `5a780a880ecfb4ee042ca87ce13b0be49f344638`.
+- Its reachable one-commit history passed the credential and forbidden-path
+  scan; no symlinks or personal author email were present.
+- Local `HEAD` and `origin/main` matched after the first push.
+- GitHub Actions run
+  [33735723182](https://github.com/Sconcer/daily-paper-brief/actions/runs/33735723182)
+  completed successfully.
+- The CI badge in the README is authoritative for later documentation or code
+  commits.

@@ -11,7 +11,7 @@ Daily Paper Brief turns a daily arXiv feed into a traceable research report: it 
 
 Daily Paper Brief is independent. It is not affiliated with, endorsed by, or operated by arXiv or Cornell University.
 
-> **Release status: candidate, pending the published CI run.** Owner-controlled files use Apache-2.0; `humanizer-zh` remains under MIT. Runtime paper content and generated reports are not covered by the code license. See [the risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md).
+> **Release status: source-ready for owner review; local gates and public CI pass.** Owner-controlled files use Apache-2.0; `humanizer-zh` remains under MIT. Runtime paper content and generated reports are not covered by the code license. See [the risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md).
 
 ## What you get
 

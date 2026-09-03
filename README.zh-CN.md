@@ -8,7 +8,7 @@ Daily Paper Brief 将每日 arXiv 来源论文转成一份可追踪的研究报�
 
 Daily Paper Brief 是独立项目，与 arXiv 或 Cornell University 无隶属、授权或背书关系。
 
-> **发布状态：候选版本，等待公开 CI 复核。** 自有代码采用 Apache-2.0；`humanizer-zh` 保持 MIT。论文内容和运行时生成报告不自动获得代码许可证授权。详见[开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)。
+> **发布状态：源码已通过本地门禁和公开 CI，可供所有者最终审阅。** 自有代码采用 Apache-2.0；`humanizer-zh` 保持 MIT。论文内容和运行时生成报告不自动获得代码许可证授权。详见[开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)。
 
 ## 它解决什么问题
 

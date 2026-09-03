@@ -81,7 +81,7 @@ retriever (network, no secrets)
 - [x] arXiv acknowledgement and independent-project disclaimer present.
 - [x] Security reporting channel and supported branch documented.
 - [x] Final reachable Git history scan completed after the root commit.
-- [ ] Public GitHub CI completed on the pushed commit.
+- [x] Public GitHub CI completed on the initial pushed root commit.
 
 Run:
 
