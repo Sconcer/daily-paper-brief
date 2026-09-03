@@ -1,0 +1,4 @@
+# Preserve byte-identical upstream snapshots. Some lines intentionally contain
+# Markdown hard-break spaces; repository-authored files keep Git's default checks.
+arxiv_monitor_phd.py whitespace=-blank-at-eol
+arxiv-monitor-config-phd.example.json whitespace=-blank-at-eol

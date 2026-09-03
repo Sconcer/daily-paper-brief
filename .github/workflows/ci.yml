@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Install hash-locked dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check --only-binary=:all:
+          --require-hashes -r requirements.lock
+
+      - name: Verify environment
+        run: python -m pip check
+
+      - name: Compile Python
+        run: >-
+          python -m compileall -q arxiv_monitor_phd.py arxiv_report_pipeline.py
+          arxiv_send_html_to_feishu.py ai_writing_metrics.py scripts tests
+
+      - name: Run repository gates
+        run: |
+          python scripts/verify_bundle.py
+          python scripts/security_audit.py
+          python scripts/check_open_source_readiness.py
+
+      - name: Run unit tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m unittest discover -s tests -v

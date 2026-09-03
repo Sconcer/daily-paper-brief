@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "name": "Daily Paper Brief 每日论文分析报告（AI Infra 优先）",
+  "description": "Daily Paper Brief 独立文献监控：AI Infra 优先，独立覆盖 HPC Systems，并保留 AI4Sci Infra；生成含来源、主图、写作信号审计、课题组画像、竖向贡献图和证据核查的中文 HTML。",
+  "enabled": true,
+  "agentId": "{{AGENT_ID}}",
+  "schedule": {
+    "kind": "cron",
+    "expr": "{{CRON_EXPR}}",
+    "tz": "{{TIMEZONE}}",
+    "staggerMs": 0
+  },
+  "sessionTarget": "isolated",
+  "wakeMode": "now",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "执行 Daily Paper Brief 每日 arXiv 来源论文完整 HTML 证据评审推送。第一步必须完整读取并严格执行 {{RUNTIME_PROMPT_PATH}} 与 {{RUNTIME_POLICY_PATH}}。主题顺序保持 AI Infra → HPC Systems → AI4Sci Infra → 其他；HPC Systems 独立覆盖并行运行时、MPI/OpenMP/PGAS、collective、GPU/加速器、互连、调度、存储/I/O、检查点、容错和性能建模。必须继续执行到明确终态：无新论文，或今天的 reviews.json 完整、HTML build 通过、dry-run 通过并且飞书发送返回 message_id/幂等已有 message_id。严禁调用 sessions_yield；它会终止 Cron 主会话。若使用子任务，每批不超过 3 篇，全部 spawn 后必须调用运行手册中的 arxiv_report_pipeline.py merge-batches 阻塞轮询，收齐全部 ID 后继续 build 和 send。不得以“等待子任务”结束，不得把子任务 accepted、status/yield 成功或 Cron ok 当作报告完成。若子任务失败或缺失，由主代理补齐后继续。任何必要阶段失败时明确报告准确阶段和路径，不发送旧报告。",
+    "model": "{{MODEL}}",
+    "thinking": "medium",
+    "timeoutSeconds": 5400,
+    "lightContext": true,
+    "toolsAllow": [
+      "exec",
+      "read",
+      "write",
+      "web_search",
+      "web_fetch",
+      "sessions_spawn"
+    ]
+  },
+  "delivery": {
+    "mode": "announce",
+    "channel": "feishu",
+    "to": "{{FEISHU_CHAT_ID}}",
+    "bestEffort": true
+  }
+}
