@@ -28,6 +28,16 @@ description: 每日论文简报流水线。监控 arXiv 当日新论文（选题
 
 定时运行可用 `python3 scripts/install_openclaw_cron.py --render-only` 渲染私有运行手册，检查 `runtime/` 后再显式 `--apply --acknowledge-local-agent-trust`。
 
+## 维护与排障
+
+日常运行之外的其余模块：
+
+- **更换选题预设**：`python3 scripts/setup_config.py --list` 查看预设，`--profile NAME` 安装（已有本地配置需 `--force`）。
+- **重跑当天监控**：`.venv/bin/python src/arxiv_monitor_phd.py --redo-today`，只忽略今天已推送的 ID，保留历史去重。
+- **离线自验**（不访问 arXiv / 飞书，改代码后必跑）：`python3 scripts/verify_bundle.py`、`python3 scripts/security_audit.py`、`python3 scripts/check_open_source_readiness.py`、`python3 -m unittest discover -s tests -v`。
+- **依赖漏洞审计**：`python3 scripts/audit_dependencies.py`，就 `requirements.lock` 锁定的精确版本查询 OSV（需联网）。
+- **arXiv 连通性探针**：`.venv/bin/python tests/network_smoke_arxiv.py`，仅在排查网络问题时运行（会访问 arXiv）。
+
 ## 终止契约
 
 "Agent 正常返回"不代表流水线成功。只有两种合法结束状态：
