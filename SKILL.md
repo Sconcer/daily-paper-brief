@@ -1,6 +1,6 @@
 ---
 name: daily-paper-brief
-description: 每日论文简报流水线。监控 arXiv 当日新论文（AI Infra / HPC Systems / AI4Sci），准备来源证据，组织结构化中文评审，逐字段校验后构建单文件离线 HTML 报告，并幂等投递到飞书。当用户提到论文日报、每日论文简报、arXiv 论文监控、看看今天有什么新论文、daily paper brief 时触发。
+description: 每日论文简报流水线。监控 arXiv 当日新论文（选题领域可选 5 个预设之一或完全自定义），准备来源证据，组织结构化中文评审，逐字段校验后构建单文件离线 HTML 报告，并幂等投递到飞书。当用户提到论文日报、每日论文简报、arXiv 论文监控、看看今天有什么新论文、daily paper brief 时触发。
 ---
 
 # Daily Paper Brief
