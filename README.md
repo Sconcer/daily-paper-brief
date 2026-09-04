@@ -1,6 +1,6 @@
 # Daily Paper Brief
 
-> Evidence-first literature monitoring and review reports for AI infrastructure, HPC systems, and AI4Sci.
+> Evidence-first arXiv literature monitoring and review reports — five preset topic profiles, or fully custom domains.
 
 [![CI](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)

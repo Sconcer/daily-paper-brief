@@ -1,6 +1,6 @@
 # Daily Paper Brief
 
-> 面向 AI 基础设施、HPC 系统与 AI4Sci 的证据优先论文监控与评审报告流水线。
+> 证据优先的 arXiv 论文监控与评审报告流水线——五个领域预设可选，也可完全自定义。
 
 简体中文 · [English](README.md) · [项目网页](https://sconcer.github.io/daily-paper-brief/)
 
