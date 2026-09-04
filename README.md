@@ -179,6 +179,7 @@ Review the current [arXiv API access guidance](https://info.arxiv.org/help/api/i
 
 ## Documentation
 
+- [Agent skill](SKILL.md) — the repository itself is a loadable skill (clone or symlink into a skills directory)
 - [Open-source risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)
 - [Name decision](docs/NAME_DECISION.md)
 - [Security model](docs/SECURITY.md)

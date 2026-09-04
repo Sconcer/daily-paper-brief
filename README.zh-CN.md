@@ -152,6 +152,7 @@ python3 scripts/install_openclaw_cron.py --apply --acknowledge-local-agent-trust
 
 ## 文档
 
+- [Agent skill](SKILL.md)——仓库本身即一个可加载的 skill（克隆或软链到技能目录即可）
 - [开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)
 - [命名决策](docs/NAME_DECISION.md)
 - [安全模型](docs/SECURITY.md)
