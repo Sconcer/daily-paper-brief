@@ -19,7 +19,7 @@ Run this exact command without `cd`, output redirection, backgrounding, or a
 second concurrent launch:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_monitor_phd.py
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_monitor_phd.py
 ```
 
 The authoritative monitor artifacts are:
@@ -44,7 +44,7 @@ Resolve today's date in `Asia/Shanghai` as both `YYYY-MM-DD` and `YYYYMMDD`.
 Run:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py prepare --input {{WORKSPACE_ROOT}}/papers_to_expand.json --date YYYY-MM-DD
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py prepare --input {{WORKSPACE_ROOT}}/papers_to_expand.json --date YYYY-MM-DD
 ```
 
 Read the emitted `assets_manifest.json` and `reviews.template.json`. For every
@@ -142,7 +142,7 @@ controller. Repeat `--batch` once per spawned batch and fill the four counts
 from the monitor artifact:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py merge-batches \
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py merge-batches \
   --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json \
   --reviews-template {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.template.json \
   --batch {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/review_batch_1.json \
@@ -166,7 +166,7 @@ Do not place the full JSON in a large shell heredoc.
 Then build the standalone report:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py build --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json --reviews {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py build --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json --reviews {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json
 ```
 
 The build must fail rather than silently omit required reviews or contribution
@@ -178,13 +178,13 @@ HTML implementation.
 Do not create a Feishu Doc. First validate the final file without sending:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}} --dry-run
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}} --dry-run
 ```
 
 If validation succeeds, send it once:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}}
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}}
 ```
 
 The sender requires the builder's matching `.receipt.json` and scopes

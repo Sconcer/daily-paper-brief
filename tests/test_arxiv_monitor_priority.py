@@ -2,14 +2,17 @@
 
 import unittest
 import json
+import sys
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 from arxiv_monitor_phd import ArxivMonitorPhD
 
 
-CONFIG = Path(__file__).resolve().parents[1] / "arxiv-monitor-config-phd.example.json"
+CONFIG = Path(__file__).resolve().parents[1] / "config" / "arxiv-monitor-config-phd.example.json"
 
 
 class ArxivMonitorPriorityTest(unittest.TestCase):

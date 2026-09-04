@@ -10,11 +10,11 @@ skill snapshot.
 
 | Repository file | Private source role | Public-release treatment |
 |---|---|---|
-| `arxiv_monitor_phd.py` | Daily arXiv API/RSS monitor | Source-neutral branding, bounded XML, fixed endpoints, private writes |
-| `arxiv-monitor-config-phd.example.json` | Personal monitor configuration | Example values only; real configuration is ignored |
-| `arxiv_report_pipeline.py` | Asset preparation, review validation, diagrams, HTML | Redirect prevalidation, media limits, path confinement, resource limits, CSP, receipts |
-| `ai_writing_metrics.py` | Deterministic writing descriptors | Source snapshot retained under repository Apache-2.0 scope |
-| `arxiv_send_html_to_feishu.py` | Feishu HTML attachment sender | Fixed private target file, receipt check, one-read upload, target-scoped idempotency |
+| `src/arxiv_monitor_phd.py` | Daily arXiv API/RSS monitor | Source-neutral branding, bounded XML, fixed endpoints, private writes |
+| `config/arxiv-monitor-config-phd.example.json` | Personal monitor configuration | Example values only; real configuration is ignored |
+| `src/arxiv_report_pipeline.py` | Asset preparation, review validation, diagrams, HTML | Redirect prevalidation, media limits, path confinement, resource limits, CSP, receipts |
+| `src/ai_writing_metrics.py` | Deterministic writing descriptors | Source snapshot retained under repository Apache-2.0 scope |
+| `src/arxiv_send_html_to_feishu.py` | Feishu HTML attachment sender | Fixed private target file, receipt check, one-read upload, target-scoped idempotency |
 | `cron/` | Active OpenClaw prompt, policy, and job definition | Machine paths and destinations replaced by private runtime placeholders |
 | `scripts/install_openclaw_cron.py` | Cron setup | Render-only default, private mode-0600 files, reduced tools, explicit trust acknowledgement |
 | `tests/` | Private regression tests | Expanded with security-boundary and release-gate coverage |

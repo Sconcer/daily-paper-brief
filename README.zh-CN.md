@@ -40,7 +40,7 @@ python3 -m unittest discover -s tests -v
 ### 2. 创建本地配置
 
 ```bash
-cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+cp config/arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 ```
 
 检查分类、关键词、关注作者/机构、权重和每日论文上限。真实配置由 Git 忽略。
@@ -72,10 +72,11 @@ cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 
 | 路径 | 用途 |
 |---|---|
-| `arxiv_monitor_phd.py` | API/RSS 抓取、评分、主题排序和每日去重 |
-| `arxiv_report_pipeline.py` | 资产下载、安全清洗、结构校验、图和 HTML 构建 |
-| `ai_writing_metrics.py` | 可复现描述量，不是作者身份分类器 |
-| `arxiv_send_html_to_feishu.py` | HTML/构建收据校验和按目标群幂等发送 |
+| `src/arxiv_monitor_phd.py` | API/RSS 抓取、评分、主题排序和每日去重 |
+| `src/arxiv_report_pipeline.py` | 资产下载、安全清洗、结构校验、图和 HTML 构建 |
+| `src/ai_writing_metrics.py` | 可复现描述量，不是作者身份分类器 |
+| `src/arxiv_send_html_to_feishu.py` | HTML/构建收据校验和按目标群幂等发送 |
+| `config/` | 示例监控配置；真实本地配置留在仓库根且被 Git 忽略 |
 | `cron/` | 可移植的提示词、政策和任务模板 |
 | `skills/` | Apache-2.0 学术风格基线和单独采用 MIT 的写作模式目录 |
 | `tests/` | 离线单测与显式触发的联网探针 |
@@ -86,13 +87,13 @@ cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 运行一次监控：
 
 ```bash
-.venv/bin/python arxiv_monitor_phd.py
+.venv/bin/python src/arxiv_monitor_phd.py
 ```
 
 准备某天的论文资产：
 
 ```bash
-.venv/bin/python arxiv_report_pipeline.py prepare \
+.venv/bin/python src/arxiv_report_pipeline.py prepare \
   --input ./papers_to_expand.json \
   --date YYYY-MM-DD
 ```

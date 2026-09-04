@@ -63,10 +63,11 @@ def atomic_write(path, content, *, binary=False):
 
 
 def resolve_config_path(config_path):
-    """Resolve config paths relative to this script so cron cwd does not matter."""
+    """Resolve config paths relative to the repository root so cron cwd does not matter."""
     if os.path.isabs(config_path):
         return config_path
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), config_path)
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(repo_root, config_path)
 
 
 class SingleRunLock:

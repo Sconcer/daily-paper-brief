@@ -11,6 +11,8 @@ from unittest import mock
 
 from PIL import Image
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 import arxiv_report_pipeline as pipeline
 import arxiv_send_html_to_feishu as sender
 import ai_writing_metrics as writing_metrics

@@ -42,7 +42,7 @@ The default suite does not contact arXiv or Feishu.
 ### 2. Create a local configuration
 
 ```bash
-cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+cp config/arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 ```
 
 Review the categories, keywords, authors, institutions, scoring weights, and maximum daily paper count. The local file is ignored by Git.
@@ -86,10 +86,11 @@ A successful model turn is not a successful pipeline. Completion requires either
 
 | Path | Role |
 |---|---|
-| `arxiv_monitor_phd.py` | API/RSS retrieval, scoring, topic ordering, daily deduplication |
-| `arxiv_report_pipeline.py` | Asset retrieval, sanitization, schema validation, diagrams, HTML |
-| `ai_writing_metrics.py` | Reproducible descriptive metrics; never an authorship classifier |
-| `arxiv_send_html_to_feishu.py` | Receipt validation and destination-scoped Feishu file delivery |
+| `src/arxiv_monitor_phd.py` | API/RSS retrieval, scoring, topic ordering, daily deduplication |
+| `src/arxiv_report_pipeline.py` | Asset retrieval, sanitization, schema validation, diagrams, HTML |
+| `src/ai_writing_metrics.py` | Reproducible descriptive metrics; never an authorship classifier |
+| `src/arxiv_send_html_to_feishu.py` | Receipt validation and destination-scoped Feishu file delivery |
+| `config/` | Example monitor configuration; the real local config stays untracked at the repository root |
 | `cron/` | Portable prompt, policy, and OpenClaw job templates |
 | `skills/` | One Apache-2.0 academic baseline and one separately licensed MIT pattern catalog |
 | `tests/` | Offline units plus an opt-in network probe |
@@ -100,13 +101,13 @@ A successful model turn is not a successful pipeline. Completion requires either
 Run the monitor once:
 
 ```bash
-.venv/bin/python arxiv_monitor_phd.py
+.venv/bin/python src/arxiv_monitor_phd.py
 ```
 
 Prepare source assets:
 
 ```bash
-.venv/bin/python arxiv_report_pipeline.py prepare \
+.venv/bin/python src/arxiv_report_pipeline.py prepare \
   --input ./papers_to_expand.json \
   --date YYYY-MM-DD
 ```

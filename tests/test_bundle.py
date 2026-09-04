@@ -32,7 +32,7 @@ class BundleTests(unittest.TestCase):
 
     def test_public_config_contains_placeholders_not_credentials(self) -> None:
         config = json.loads(
-            (ROOT / "arxiv-monitor-config-phd.example.json").read_text(encoding="utf-8")
+            (ROOT / "config" / "arxiv-monitor-config-phd.example.json").read_text(encoding="utf-8")
         )
         self.assertEqual(config["notification"]["feishu_group"], "YOUR_GROUP_CHAT_ID")
         self.assertGreaterEqual(config["request_delay_seconds"], 3.0)

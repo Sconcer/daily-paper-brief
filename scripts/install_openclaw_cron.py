@@ -77,11 +77,11 @@ def require_safe_value(name: str, value: str, pattern: re.Pattern[str]) -> str:
 
 def require_bundle(root: Path) -> None:
     required = (
-        "arxiv_monitor_phd.py",
-        "arxiv-monitor-config-phd.example.json",
-        "arxiv_report_pipeline.py",
-        "ai_writing_metrics.py",
-        "arxiv_send_html_to_feishu.py",
+        "src/arxiv_monitor_phd.py",
+        "config/arxiv-monitor-config-phd.example.json",
+        "src/arxiv_report_pipeline.py",
+        "src/ai_writing_metrics.py",
+        "src/arxiv_send_html_to_feishu.py",
         "cron/arxiv_cron_prompt.template.md",
         "cron/arxiv_review_policy.template.md",
         "cron/arxiv-daily-review.job.template.json",

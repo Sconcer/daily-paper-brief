@@ -24,7 +24,7 @@ export COPYFILE_DISABLE=1
 export PYTHONDONTWRITEBYTECODE=1
 
 if [ ! -f "$repo_root/arxiv-monitor-config-phd.json" ]; then
-  cp "$repo_root/arxiv-monitor-config-phd.example.json" "$repo_root/arxiv-monitor-config-phd.json"
+  cp "$repo_root/config/arxiv-monitor-config-phd.example.json" "$repo_root/arxiv-monitor-config-phd.json"
   echo "created local config: $repo_root/arxiv-monitor-config-phd.json"
 fi
 

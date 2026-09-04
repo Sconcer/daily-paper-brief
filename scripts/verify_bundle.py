@@ -18,11 +18,11 @@ REQUIRED = (
     "NOTICE",
     "README.md",
     "README.zh-CN.md",
-    "arxiv_monitor_phd.py",
-    "arxiv-monitor-config-phd.example.json",
-    "arxiv_report_pipeline.py",
-    "ai_writing_metrics.py",
-    "arxiv_send_html_to_feishu.py",
+    "src/arxiv_monitor_phd.py",
+    "config/arxiv-monitor-config-phd.example.json",
+    "src/arxiv_report_pipeline.py",
+    "src/ai_writing_metrics.py",
+    "src/arxiv_send_html_to_feishu.py",
     "requirements.lock",
     "cron/arxiv_cron_prompt.template.md",
     "cron/arxiv_review_policy.template.md",
@@ -104,7 +104,7 @@ def main() -> int:
                 errors.append(f"{label} found in {relative}")
 
     for relative in (
-        "arxiv-monitor-config-phd.example.json",
+        "config/arxiv-monitor-config-phd.example.json",
         "cron/arxiv-daily-review.job.template.json",
         "examples/arxiv_pushed_ids.example.json",
         "examples/papers_to_expand.example.json",
