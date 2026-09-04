@@ -2,7 +2,7 @@
 
 > 面向 AI 基础设施、HPC 系统与 AI4Sci 的证据优先论文监控与评审报告流水线。
 
-简体中文 · [English](README.md)
+简体中文 · [English](README.md) · [项目网页](https://sconcer.github.io/daily-paper-brief/)
 
 Daily Paper Brief 将每日 arXiv 来源论文转成一份可追踪的研究报告：筛选论文、保存来源证据、组织结构化评审、执行确定性校验、生成离线 HTML，并以哈希幂等方式发送一次。
 

@@ -5,7 +5,7 @@
 [![CI](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-[简体中文](README.zh-CN.md) · English
+[简体中文](README.zh-CN.md) · English · [Project page](https://sconcer.github.io/daily-paper-brief/)
 
 Daily Paper Brief turns a daily arXiv feed into a traceable research report: it selects papers, preserves source evidence, coordinates structured review, validates every required field, builds one offline HTML report, and sends that report once.
 
