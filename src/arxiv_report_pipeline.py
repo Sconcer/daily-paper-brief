@@ -169,6 +169,7 @@ WRITING_LABEL_ZH = {
 }
 CONFIDENCE_ZH = {"High": "高", "Medium": "中", "Low": "低"}
 PRIORITY_ZH = {"High": "高优先级", "Medium": "中优先级", "Low": "低优先级"}
+DEFAULT_TOPIC_LABELS = {"other": "相关主题"}
 SECTION_ZH = {
     "abstract": "摘要",
     "introduction": "引言",
@@ -713,9 +714,19 @@ def writing_assessment_template(paper: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def prepare_assets(input_path: Path, report_date: str, report_root: Path, limit: Optional[int] = None) -> Path:
-    papers = load_json(input_path)
+    payload = load_json(input_path)
+    topic_labels: Dict[str, str] = {}
+    if isinstance(payload, dict):
+        raw_labels = payload.get("topic_labels") or {}
+        if isinstance(raw_labels, dict):
+            topic_labels = {str(key): str(value) for key, value in raw_labels.items()}
+        papers = payload.get("papers")
+    else:
+        papers = payload
     if not isinstance(papers, list):
-        raise PipelineError(f"{input_path} must contain a JSON array")
+        raise PipelineError(
+            f"{input_path} must contain a JSON array or an object with a papers array"
+        )
     if limit is not None and limit > MAX_PAPERS_PER_REPORT:
         raise PipelineError(f"paper limit exceeds {MAX_PAPERS_PER_REPORT}")
     if limit is not None:
@@ -745,6 +756,7 @@ def prepare_assets(input_path: Path, report_date: str, report_root: Path, limit:
         "date": validate_date(report_date),
         "source_input": str(input_path.resolve()),
         "report_dir": str(report_dir.resolve()),
+        "topic_labels": topic_labels,
         "papers": [],
     }
 
@@ -812,9 +824,7 @@ def prepare_assets(input_path: Path, report_date: str, report_root: Path, limit:
         "run_summary": {
             "total_fetched": 0,
             "recommended": len(manifest["papers"]),
-            "ai_infra_matches": 0,
-            "hpc_matches": 0,
-            "ai4sci_matches": 0,
+            "topic_counts": {},
             "top3_arxiv_ids": [],
         },
         "papers": [
@@ -1649,6 +1659,7 @@ def render_paper(
     contribution_svg: Path,
     position: int,
     report_root: Path,
+    topic_labels: Optional[Dict[str, str]] = None,
 ) -> str:
     arxiv_id = paper.get("arxiv_id", "")
     anchor = f"paper-{safe_slug(base_arxiv_id(arxiv_id))}"
@@ -1687,13 +1698,7 @@ def render_paper(
     code_url = paper.get("code_url")
     code_link = f'<a href="{safe_http_link(code_url)}">代码 / Code</a>' if code_url else "未发现代码链接"
     topic = str(paper.get("primary_topic") or "other")
-    topic_labels = {
-        "ai_infra": "AI 基础设施 · 主主题",
-        "hpc_systems": "HPC 系统 · 次主题",
-        "ai4sci_infra": "AI4Sci 基础设施 · 扩展主题",
-        "other": "相关主题",
-    }
-    topic_label = topic_labels.get(topic, topic)
+    topic_label = (topic_labels or {}).get(topic) or DEFAULT_TOPIC_LABELS.get(topic, topic)
 
     return f"""
     <article class="paper" id="{anchor}">
@@ -1742,7 +1747,7 @@ def render_paper(
 
       <div class="analysis-grid">
         <section><h3>系统与基础设施视角</h3><p>{escape_text(perspectives.get('systems'))}</p></section>
-        <section><h3>AI4Sci 与领域视角</h3><p>{escape_text(perspectives.get('ai4sci'))}</p></section>
+        <section><h3>领域与应用视角</h3><p>{escape_text(perspectives.get('ai4sci'))}</p></section>
         <section><h3>研究价值与风险</h3><p>{escape_text(perspectives.get('research_value'))}</p></section>
         <section><h3>创新边界 / Novelty boundary</h3><p>{escape_text(review.get('novelty_boundary'))}</p></section>
         <section><h3>评测有效性 / Evaluation validity</h3><p>{escape_text(review.get('evaluation_validity'))}</p></section>
@@ -1944,9 +1949,53 @@ def build_report(manifest_path: Path, reviews_path: Path, output_path: Optional[
     if not isinstance(recommended, int):
         recommended = len(manifest.get("papers", []))
     total_fetched = run_summary.get("total_fetched", "n/a")
-    ai_infra_matches = run_summary.get("ai_infra_matches", "n/a")
-    hpc_matches = run_summary.get("hpc_matches", "n/a")
-    ai4sci_matches = run_summary.get("ai4sci_matches", "n/a")
+
+    topic_counts = run_summary.get("topic_counts")
+    if not isinstance(topic_counts, dict):
+        topic_counts = {}
+        for paper in manifest.get("papers", []):
+            topic = str(paper.get("primary_topic") or "other")
+            topic_counts[topic] = topic_counts.get(topic, 0) + 1
+    topic_counts = {
+        str(topic): count
+        for topic, count in topic_counts.items()
+        if isinstance(count, int)
+    }
+    topic_labels = manifest.get("topic_labels")
+    if not isinstance(topic_labels, dict):
+        topic_labels = {}
+
+    def topic_label_for(topic: str) -> str:
+        return str(topic_labels.get(topic) or DEFAULT_TOPIC_LABELS.get(topic, topic))
+
+    primary_stat_topic = next(
+        (topic for topic in topic_labels if topic_counts.get(topic)), None
+    )
+    if primary_stat_topic is None and topic_counts:
+        primary_stat_topic = max(topic_counts, key=lambda topic: topic_counts[topic])
+    if primary_stat_topic is None:
+        primary_stat_value, primary_stat_label = "n/a", "主题命中"
+        other_stat_value, other_stat_label = "n/a", "其他主题"
+    else:
+        primary_stat_value = topic_counts[primary_stat_topic]
+        primary_stat_label = topic_label_for(primary_stat_topic)
+        other_topics = [
+            topic for topic in topic_counts if topic != primary_stat_topic
+        ]
+        other_stat_value = sum(topic_counts[topic] for topic in other_topics)
+        other_stat_label = (
+            " / ".join(topic_label_for(topic) for topic in other_topics) or "其他主题"
+        )
+
+    if topic_labels:
+        hero_scope = "研究主题：" + " → ".join(
+            topic_label_for(topic) for topic in topic_labels
+        )
+    else:
+        hero_scope = (
+            "AI 基础设施优先，独立覆盖 HPC 并行系统、通信、调度、存储与性能建模，"
+            "并保留 AI4Sci 基础设施观察。"
+        )
 
     toc_entries = []
     articles = []
@@ -1965,6 +2014,7 @@ def build_report(manifest_path: Path, reviews_path: Path, output_path: Optional[
                 contribution_paths[identifier],
                 position,
                 report_dir,
+                topic_labels,
             )
         )
 
@@ -1985,8 +2035,8 @@ def build_report(manifest_path: Path, reviews_path: Path, output_path: Optional[
   <header class="hero">
     <p class="kicker">每日研究情报 · Daily research intelligence</p>
     <h1>Daily arXiv Report / 每日 arXiv 论文分析报告</h1>
-    <p>{html.escape(report_date)} · AI 基础设施优先，独立覆盖 HPC 并行系统、通信、调度、存储与性能建模，并保留 AI4Sci 基础设施观察。</p>
-    <div class="stats"><div class="stat"><strong>{escape_text(total_fetched)}</strong>抓取论文</div><div class="stat"><strong>{escape_text(recommended)}</strong>推荐论文</div><div class="stat"><strong>{escape_text(ai_infra_matches)}</strong>AI 基础设施</div><div class="stat"><strong>{escape_text(hpc_matches)} / {escape_text(ai4sci_matches)}</strong>HPC / AI4Sci</div></div>
+    <p>{html.escape(report_date)} · {escape_text(hero_scope)}</p>
+    <div class="stats"><div class="stat"><strong>{escape_text(total_fetched)}</strong>抓取论文</div><div class="stat"><strong>{escape_text(recommended)}</strong>推荐论文</div><div class="stat"><strong>{escape_text(primary_stat_value)}</strong>{escape_text(primary_stat_label)}</div><div class="stat"><strong>{escape_text(other_stat_value)}</strong>{escape_text(other_stat_label)}</div></div>
   </header>
   <div class="notice"><strong>解释边界：</strong>“AI 辅助写作迹象”是结构化的序数证据审计。自动指标未经单篇论文校准，不是概率；任何分级都不能证明 AI 作者身份、学术不端、抄袭或研究无效。</div>
   <nav class="toc"><strong>目录 / Contents</strong><ol>{''.join(toc_entries)}</ol></nav>
@@ -2104,12 +2154,14 @@ def merge_review_batches(
             raise PipelineError(f"review batches not ready before timeout: {state}")
         time.sleep(max(0.5, float(poll_seconds)))
 
+    topic_counts: Dict[str, int] = {}
+    for item in manifest.get("papers") or []:
+        topic = str(item.get("primary_topic") or "other")
+        topic_counts[topic] = topic_counts.get(topic, 0) + 1
     summary = {
         "total_fetched": int(run_summary.get("total_fetched") or 0),
         "recommended": len(expected_order),
-        "ai_infra_matches": int(run_summary.get("ai_infra_matches") or 0),
-        "hpc_matches": int(run_summary.get("hpc_matches") or 0),
-        "ai4sci_matches": int(run_summary.get("ai4sci_matches") or 0),
+        "topic_counts": topic_counts,
         "top3_arxiv_ids": [
             normalize_arxiv_id(value)
             for value in (run_summary.get("top3_arxiv_ids") or expected_display_order[:3])
@@ -2170,9 +2222,6 @@ def command_merge_batches(args: argparse.Namespace) -> int:
         Path(args.output),
         {
             "total_fetched": args.total_fetched,
-            "ai_infra_matches": args.ai_infra_matches,
-            "hpc_matches": args.hpc_matches,
-            "ai4sci_matches": args.ai4sci_matches,
             "top3_arxiv_ids": args.top3_arxiv_id,
         },
         wait_seconds=args.wait_seconds,
@@ -2220,9 +2269,6 @@ def parser() -> argparse.ArgumentParser:
     merge_batches.add_argument("--batch", action="append", required=True)
     merge_batches.add_argument("--output", required=True)
     merge_batches.add_argument("--total-fetched", type=int, required=True)
-    merge_batches.add_argument("--ai-infra-matches", type=int, required=True)
-    merge_batches.add_argument("--hpc-matches", type=int, required=True)
-    merge_batches.add_argument("--ai4sci-matches", type=int, required=True)
     merge_batches.add_argument("--top3-arxiv-id", action="append", default=[])
     merge_batches.add_argument("--wait-seconds", type=int, default=3600)
     merge_batches.add_argument("--poll-seconds", type=float, default=15.0)

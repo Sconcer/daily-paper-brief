@@ -37,13 +37,16 @@ python3 -m unittest discover -s tests -v
 
 默认测试不会访问 arXiv 或飞书。
 
-### 2. 创建本地配置
+### 2. 选择预设或自定义
+
+列出内置选题预设，并安装一个为本地配置：
 
 ```bash
-cp config/arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+python3 scripts/setup_config.py --list
+python3 scripts/setup_config.py --profile ai-infra-hpc
 ```
 
-检查分类、关键词、关注作者/机构、权重和每日论文上限。真实配置由 Git 忽略。
+`config/profiles/` 提供 5 个预设：`ai-infra-hpc`（AI 基础设施 / HPC 系统 / AI4Sci）、`nlp-llm`、`vision-robotics`、`security-privacy`、`science-computing`。需要自定义时，直接编辑生成的 `arxiv-monitor-config-phd.json`：分类、关键词、`topics` 数组（词组、strong 规则、配额）、关注作者/机构、评分权重与每日论文上限；完整字段布局见 `config/arxiv-monitor-config-phd.example.json`。真实配置由 Git 忽略；不带参数运行 `setup_config.py` 会打印字段说明。
 
 ### 3. 构建环境
 
@@ -76,7 +79,8 @@ cp config/arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 | `src/arxiv_report_pipeline.py` | 资产下载、安全清洗、结构校验、图和 HTML 构建 |
 | `src/ai_writing_metrics.py` | 可复现描述量，不是作者身份分类器 |
 | `src/arxiv_send_html_to_feishu.py` | HTML/构建收据校验和按目标群幂等发送 |
-| `config/` | 示例监控配置；真实本地配置留在仓库根且被 Git 忽略 |
+| `config/` | 示例监控配置与可选选题预设；真实本地配置留在仓库根且被 Git 忽略 |
+| `config/profiles/` | 5 个可选领域预设（`ai-infra-hpc`、`nlp-llm`、`vision-robotics`、`security-privacy`、`science-computing`） |
 | `cron/` | 可移植的提示词、政策和任务模板 |
 | `skills/` | Apache-2.0 学术风格基线和单独采用 MIT 的写作模式目录 |
 | `tests/` | 离线单测与显式触发的联网探针 |

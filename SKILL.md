@@ -11,7 +11,7 @@ description: 每日论文简报流水线。监控 arXiv 当日新论文（AI Inf
 
 1. 克隆仓库并进入目录；要求 Python ≥ 3.12 与 Poppler（`pdftotext` / `pdftoppm`）。
 2. 运行 `./scripts/bootstrap.sh`：建 `.venv`、按哈希锁装依赖、生成本地配置、跑全部门禁与测试。
-3. 编辑仓库根的 `arxiv-monitor-config-phd.json`（由 `config/arxiv-monitor-config-phd.example.json` 复制而来），填入自己的分类、关键词、关注作者/机构与权重。该文件被 Git 忽略，不得提交。
+3. 选择选题预设：`python3 scripts/setup_config.py --list` 查看 `config/profiles/` 下的 5 个领域预设，`--profile NAME` 生成仓库根的 `arxiv-monitor-config-phd.json`（`bootstrap.sh` 在无本地配置时已默认安装 `ai-infra-hpc`）；再按需编辑分类、关键词、`topics` 词表与配额、关注作者/机构与权重。该文件被 Git 忽略，不得提交。
 4. 仅当需要投递到飞书时，设置 `FEISHU_CHAT_ID`、`ARXIV_REVIEW_MODEL`、`DAILY_PAPER_BRIEF_USER_AGENT`（含真实联系邮箱）。只想本地看报告则不需要。
 
 ## 运行手册

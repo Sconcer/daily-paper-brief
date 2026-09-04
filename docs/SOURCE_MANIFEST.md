@@ -12,6 +12,8 @@ skill snapshot.
 |---|---|---|
 | `src/arxiv_monitor_phd.py` | Daily arXiv API/RSS monitor | Source-neutral branding, bounded XML, fixed endpoints, private writes |
 | `config/arxiv-monitor-config-phd.example.json` | Personal monitor configuration | Example values only; real configuration is ignored |
+| `config/profiles/` | Selectable topic presets | Five domain presets in the generic `topics` format; installed via `setup_config.py` |
+| `scripts/setup_config.py` | Topic profile selector | Lists presets, installs one as the ignored local config, prints customization guidance |
 | `src/arxiv_report_pipeline.py` | Asset preparation, review validation, diagrams, HTML | Redirect prevalidation, media limits, path confinement, resource limits, CSP, receipts |
 | `src/ai_writing_metrics.py` | Deterministic writing descriptors | Source snapshot retained under repository Apache-2.0 scope |
 | `src/arxiv_send_html_to_feishu.py` | Feishu HTML attachment sender | Fixed private target file, receipt check, one-read upload, target-scoped idempotency |

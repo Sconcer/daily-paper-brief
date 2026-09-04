@@ -1,30 +1,22 @@
 # Daily Paper Brief Review Policy
 
-This policy is used by the independent Daily Paper Brief arXiv-source AI Infra / AI4Sci Infra cron job.
+This policy is used by the independent Daily Paper Brief arXiv-source
+topic-configurable cron job.
 
 ## Topic Priority
 
-The push order is strict and persistent:
+The push order is strict and persistent, and follows the topics configured in
+the local monitor configuration:
 
-1. **AI Infrastructure** is the primary theme: training/inference systems,
-   serving, runtimes, compilers, kernels, accelerators, distributed execution,
-   scheduling, communication, memory/KV-cache management, and systems-oriented
-   efficiency work.
-2. **HPC Systems** is the secondary theme: high-performance and parallel
-   computing runtimes, MPI/OpenMP/PGAS, collective communication, GPU/accelerator
-   computing, interconnects, scheduling, storage and I/O, checkpoint/fault
-   tolerance, performance modeling, scalability, and supercomputing workflows.
-   An AI or science-domain anchor is not required when the HPC systems mechanism
-   is explicit.
-3. **AI4Sci Infrastructure** is the extended theme: scientific workloads,
-   simulation, scientific foundation models, scientific workflows, and HPC
-   infrastructure that do not qualify as primary AI Infrastructure.
-4. Adjacent papers may fill remaining slots only after all three themes above.
+{{TOPIC_GUIDE}}
+
+Adjacent papers outside every configured topic may fill remaining slots only
+after all configured themes.
 
 The monitor assigns `primary_topic` and sorts by topic priority before relevance
 score. When a paper matches multiple themes, use the configured order
-`AI Infrastructure → HPC Systems → AI4Sci Infrastructure`. Do not reorder the
-final report solely because a lower-priority topic has a higher numeric score.
+{{TOPIC_ORDER}}. Do not reorder the final report solely because a lower-priority
+topic has a higher numeric score.
 
 ## Delivery Contract
 
@@ -101,7 +93,7 @@ For each paper, include:
 2. Key people: first/corresponding/senior authors when identifiable; do not guess advisor status unless public evidence supports it.
 3. Group focus: 2-4 sentences on the group's main research areas and technical style.
 4. Prior related work: representative papers, systems, benchmarks, codebases, or datasets when available.
-5. Why this group matters for the user's interests: connection to AI infrastructure, LLM systems, AI4Sci, HPC, kernels/compilers, serving, or scientific workflows.
+5. Why this group matters for the user's interests: connection to the configured topics listed under Topic Priority.
 6. Evidence and confidence: cite the evidence type in prose, and mark confidence as High / Medium / Low.
 
 ## Multi-Agent Review Requirement
@@ -113,8 +105,8 @@ Use three review perspectives:
 
 1. Systems / infrastructure reviewer
    - Judge system novelty, architecture, scheduling/runtime/compiler/kernel implications, and whether the claimed speedup or efficiency result is meaningful.
-2. AI4Sci / domain reviewer
-   - Judge whether the paper is relevant to AI4Sci, scientific computing, simulation, HPC, scientific foundation models, or domain workflows.
+2. Domain / application reviewer
+   - Judge whether the paper is relevant to the configured application domains, domain workflows, and domain-specific methods or infrastructure.
 3. Research-value reviewer
    - Judge usefulness for the user's research direction, reproduction feasibility, risks, weak assumptions, and follow-up reading priority.
 
@@ -315,14 +307,16 @@ Top-level shape:
   "run_summary": {
     "total_fetched": 0,
     "recommended": 0,
-    "ai_infra_matches": 0,
-    "hpc_matches": 0,
-    "ai4sci_matches": 0,
+    "topic_counts": {"<topic_id>": 0},
     "top3_arxiv_ids": []
   },
   "papers": []
 }
 ```
+
+`topic_counts` maps each configured topic id (or `other`) to its paper count;
+the deterministic merge step recomputes it from each paper's persisted
+`primary_topic`.
 
 Every item in `papers` must contain:
 
@@ -417,6 +411,9 @@ Every item in `papers` must contain:
 Do not leave empty strings or placeholder text. If evidence is unavailable,
 write `公开信息不足 / insufficient public evidence` in that field.
 
+The `reviews.ai4sci` field name is kept for schema compatibility; it holds the
+domain/application reviewer perspective regardless of the configured topics.
+
 ## Per-Paper HTML Format
 
 For each pushed paper, include:
@@ -424,7 +421,7 @@ For each pushed paper, include:
 1. Chinese title translation as the primary heading.
 2. Original English title as secondary source metadata.
 3. Metadata: primary topic, arXiv link, categories, code link if any, metrics if
-   any, relevance score, AI Infra match, HPC Systems match, and AI4Sci Infra match if any.
+   any, relevance score, and per-topic match scores if any.
 4. 中文总结：正文主区块，3–5 句。
 5. English summary: a collapsed supplementary block of 1–2 sentences.
 6. 课题组 / Research group profile:
@@ -438,7 +435,7 @@ For each pushed paper, include:
 8. Reviewer-generated draw.io contribution map.
 9. Multi-agent review:
    - Systems reviewer:
-   - AI4Sci/domain reviewer:
+   - Domain/application reviewer:
    - Research-value reviewer:
 10. AI-assisted writing signals audit with coverage record, automatic raw metrics,
     the fixed eight-indicator 0–2 scorecard, aggregate threshold rationale,
@@ -454,14 +451,11 @@ For each pushed paper, include:
 The group notification should be concise and Chinese-first, with English topic
 names retained only where useful:
 
-- Include total fetched, recommended, AI Infra matched, and AI4Sci Infra matched
-  counts, plus the standalone HPC Systems count.
-- List an `AI Infra Focus / AI Infra 重点` section first; Top 3 must follow the
-  persisted topic ordering.
-- Include an `HPC Systems / HPC 系统` section after AI Infra, covering parallel
-  runtimes, communication, scheduling, storage/I/O, resilience, and performance.
-- Include an `AI4Sci Infra Watch / AI4Sci Infra 次级观察` section after the AI
-  Infra section. If AI4Sci papers are not in Top 3, list 2-4 separately.
+- Include total fetched, recommended, and per-topic matched counts using the
+  configured topic labels.
+- List one section per configured topic in the persisted topic order
+  ({{TOPIC_ORDER}}); Top 3 must follow the persisted topic ordering. If a
+  configured topic has no papers in Top 3, list 2-4 of its papers separately.
 - Mention that the attached standalone HTML contains source main figures,
   reviewer-generated contribution maps, Chinese-primary summaries with compact
   English supplements, AI-writing-signal

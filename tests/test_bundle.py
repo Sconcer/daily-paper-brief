@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts" / "install_openclaw_cron.py"
 RELEASE_GATE = ROOT / "scripts" / "check_open_source_readiness.py"
+
+
+def make_repo_copy(temporary_dir: str, with_local_config: bool = True) -> Path:
+    """Copy the installer's required bundle subset into a throwaway repo root."""
+    repo = Path(temporary_dir) / "repo"
+    for name in ("src", "config", "cron"):
+        shutil.copytree(ROOT / name, repo / name)
+    for skill in ("humanizer-zh/SKILL.md", "academic-style-baseline/SKILL.md"):
+        destination = repo / "skills" / skill
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "skills" / skill, destination)
+    if with_local_config:
+        shutil.copy2(
+            ROOT / "config" / "arxiv-monitor-config-phd.example.json",
+            repo / "arxiv-monitor-config-phd.json",
+        )
+    return repo
 
 
 class BundleTests(unittest.TestCase):
@@ -56,6 +74,7 @@ class BundleTests(unittest.TestCase):
 
     def test_render_only_creates_complete_private_runtime_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
+            repo = make_repo_copy(temporary_dir)
             runtime_root = Path(temporary_dir) / "runtime"
             fake_chat_id = "oc_testbundledestination"
             result = subprocess.run(
@@ -63,6 +82,8 @@ class BundleTests(unittest.TestCase):
                     sys.executable,
                     str(INSTALLER),
                     "--render-only",
+                    "--repo-root",
+                    str(repo),
                     "--runtime-root",
                     str(runtime_root),
                     "--chat-id",
@@ -87,7 +108,10 @@ class BundleTests(unittest.TestCase):
             self.assertNotIn(fake_chat_id, prompt)
             self.assertEqual(job["payload"]["model"], "openai/gpt-5.6-sol")
             self.assertTrue(job["name"].startswith("Daily Paper Brief"))
-            self.assertIn(str(ROOT), prompt)
+            self.assertIn(str(repo), prompt)
+            # The example config doubles as the ai-infra-hpc default profile.
+            self.assertIn("AI 基础设施 → HPC 系统 → AI4Sci 基础设施 → 其他", prompt)
+            self.assertIn("每日配额上限 4 篇", prompt)
             for name in (
                 "arxiv_cron_prompt.md",
                 "arxiv_review_policy.md",
@@ -96,13 +120,39 @@ class BundleTests(unittest.TestCase):
             ):
                 self.assertEqual((runtime_root / name).stat().st_mode & 0o777, 0o600)
 
+    def test_render_only_requires_a_local_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            repo = make_repo_copy(temporary_dir, with_local_config=False)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(INSTALLER),
+                    "--render-only",
+                    "--repo-root",
+                    str(repo),
+                    "--runtime-root",
+                    str(Path(temporary_dir) / "runtime"),
+                    "--chat-id",
+                    "oc_testbundledestination",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("setup_config.py", result.stderr)
+
     def test_apply_requires_explicit_local_agent_trust_acknowledgement(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
+            repo = make_repo_copy(temporary_dir)
             result = subprocess.run(
                 [
                     sys.executable,
                     str(INSTALLER),
                     "--apply",
+                    "--repo-root",
+                    str(repo),
                     "--runtime-root",
                     str(Path(temporary_dir) / "runtime"),
                     "--chat-id",

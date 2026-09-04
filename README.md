@@ -39,13 +39,16 @@ python3 -m unittest discover -s tests -v
 
 The default suite does not contact arXiv or Feishu.
 
-### 2. Create a local configuration
+### 2. Choose a preset or customize
+
+List the bundled topic profiles and install one as the local config:
 
 ```bash
-cp config/arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+python3 scripts/setup_config.py --list
+python3 scripts/setup_config.py --profile ai-infra-hpc
 ```
 
-Review the categories, keywords, authors, institutions, scoring weights, and maximum daily paper count. The local file is ignored by Git.
+`config/profiles/` ships five presets: `ai-infra-hpc` (AI infrastructure, HPC systems, AI4Sci), `nlp-llm`, `vision-robotics`, `security-privacy`, and `science-computing`. To customize, edit the generated `arxiv-monitor-config-phd.json` — categories, keywords, the `topics` array (term groups, strong rules, quotas), authors, institutions, scoring weights, and the daily paper cap. `config/arxiv-monitor-config-phd.example.json` documents the full layout. The local file is ignored by Git; running `setup_config.py` without arguments prints the field guide.
 
 ### 3. Build the verified environment
 
@@ -90,7 +93,8 @@ A successful model turn is not a successful pipeline. Completion requires either
 | `src/arxiv_report_pipeline.py` | Asset retrieval, sanitization, schema validation, diagrams, HTML |
 | `src/ai_writing_metrics.py` | Reproducible descriptive metrics; never an authorship classifier |
 | `src/arxiv_send_html_to_feishu.py` | Receipt validation and destination-scoped Feishu file delivery |
-| `config/` | Example monitor configuration; the real local config stays untracked at the repository root |
+| `config/` | Example monitor configuration plus selectable topic profiles; the real local config stays untracked at the repository root |
+| `config/profiles/` | Five selectable topic presets (`ai-infra-hpc`, `nlp-llm`, `vision-robotics`, `security-privacy`, `science-computing`) |
 | `cron/` | Portable prompt, policy, and OpenClaw job templates |
 | `skills/` | One Apache-2.0 academic baseline and one separately licensed MIT pattern catalog |
 | `tests/` | Offline units plus an opt-in network probe |
