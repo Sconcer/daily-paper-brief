@@ -32,7 +32,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import textwrap
+import unicodedata
 import time
 import warnings
 import xml.etree.ElementTree as ET
@@ -169,7 +169,12 @@ WRITING_LABEL_ZH = {
 }
 CONFIDENCE_ZH = {"High": "高", "Medium": "中", "Low": "低"}
 PRIORITY_ZH = {"High": "高优先级", "Medium": "中优先级", "Low": "低优先级"}
-DEFAULT_TOPIC_LABELS = {"other": "相关主题"}
+DEFAULT_TOPIC_LABELS = {
+    "ai_infra": "AI 基础设施 · 主主题",
+    "hpc_systems": "HPC 系统 · 次主题",
+    "ai4sci_infra": "AI4Sci 基础设施 · 扩展主题",
+    "other": "相关主题",
+}
 SECTION_ZH = {
     "abstract": "摘要",
     "introduction": "引言",
@@ -1236,8 +1241,6 @@ def validate_review_payload(manifest: Dict[str, Any], payload: Dict[str, Any]) -
 
 def drawio_text(title: str, body: str) -> str:
     compact = re.sub(r"\s+", " ", str(body)).strip()
-    if len(compact) > 240:
-        compact = compact[:237].rstrip() + "…"
     escaped = html.escape(compact)
     # Long technical compounds such as ``roles/resources/barriers/pipelines``
     # otherwise overflow draw.io's XHTML label box. Keep the visible text
@@ -1275,7 +1278,11 @@ def write_drawio_contribution(diagram: Dict[str, Any], output_path: Path) -> Non
         ("mechanism", "关键机制 / Key mechanism", "#DFF3F8", "#3A9BB7"),
         ("evidence", "证据与影响 / Evidence", "#E4F1E8", "#228833"),
     )
-    y_positions = (20, 166, 312, 458)
+    heights = [max(116, 66 + len(contribution_lines(diagram[key])) * 23) for key, *_ in nodes]
+    y_positions = [20]
+    for height in heights[:-1]:
+        y_positions.append(y_positions[-1] + height + 30)
+    model.set("pageHeight", str(max(1169, y_positions[-1] + heights[-1] + 40)))
     for index, ((key, title, fill, stroke), y_position) in enumerate(
         zip(nodes, y_positions), start=2
     ):
@@ -1300,7 +1307,7 @@ def write_drawio_contribution(diagram: Dict[str, Any], output_path: Path) -> Non
             x="30",
             y=str(y_position),
             width="520",
-            height="116",
+            height=str(heights[index - 2]),
             **{"as": "geometry"},
         )
 
@@ -1326,17 +1333,54 @@ def write_drawio_contribution(diagram: Dict[str, Any], output_path: Path) -> Non
     atomic_write_text(output_path, xml_content)
 
 
+def contribution_lines(value: Any) -> List[str]:
+    """Wrap mixed CJK/Latin text with conservative font-independent widths.
+
+    Keep all content. The node grows vertically instead of silently clipping
+    the fourth line or discarding characters beyond an arbitrary length.
+    """
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if not text:
+        text = "公开信息不足 / insufficient evidence"
+    lines: List[str] = []
+    line = ""
+    width = 0.0
+    for char in text:
+        if unicodedata.combining(char):
+            advance = 0.0
+        elif unicodedata.east_asian_width(char) in {"W", "F"}:
+            advance = 1.1
+        elif char in "MW@%":
+            advance = 1.1
+        else:
+            advance = 0.8
+        if line and width + advance > 30:
+            lines.append(line)
+            line, width = "", 0.0
+        line += char
+        width += advance
+    if line:
+        lines.append(line)
+    return lines
+
+
 def write_contribution_svg(diagram: Dict[str, Any], svg_path: Path) -> None:
     """Render the portrait contribution map without invoking an SVG parser."""
     if svg_path.is_symlink():
         raise PipelineError(f"SVG output must not be a symbolic link: {svg_path}")
     namespace = "http://www.w3.org/2000/svg"
     ET.register_namespace("", namespace)
+    wrapped = [contribution_lines(diagram.get(key)) for key in ("problem", "approach", "mechanism", "evidence")]
+    heights = [max(116, 66 + len(lines) * 23) for lines in wrapped]
+    y_positions = [18]
+    for height in heights[:-1]:
+        y_positions.append(y_positions[-1] + height + 38)
+    canvas_height = max(650, y_positions[-1] + heights[-1] + 24)
     svg = ET.Element(
         f"{{{namespace}}}svg",
-        viewBox="0 0 600 650",
+        viewBox=f"0 0 600 {canvas_height}",
         width="600",
-        height="650",
+        height=str(canvas_height),
         role="img",
         **{"aria-label": "Reviewer-generated contribution map"},
     )
@@ -1360,7 +1404,6 @@ def write_contribution_svg(diagram: Dict[str, Any], svg_path: Path) -> None:
         ("mechanism", "关键机制 / Key mechanism", "#DFF3F8", "#3A9BB7"),
         ("evidence", "证据与影响 / Evidence", "#E4F1E8", "#228833"),
     )
-    y_positions = (18, 172, 326, 480)
     for index, ((key, title, fill, stroke), y_position) in enumerate(zip(nodes, y_positions)):
         ET.SubElement(
             svg,
@@ -1368,7 +1411,7 @@ def write_contribution_svg(diagram: Dict[str, Any], svg_path: Path) -> None:
             x="30",
             y=str(y_position),
             width="540",
-            height="116",
+            height=str(heights[index]),
             rx="8",
             fill=fill,
             stroke=stroke,
@@ -1389,18 +1432,14 @@ def write_contribution_svg(diagram: Dict[str, Any], svg_path: Path) -> None:
             x="50",
             y=str(y_position + 54),
             fill="#333333",
-            **{"font-family": "PingFang SC, Helvetica, Arial, sans-serif", "font-size": "13"},
+            **{"font-family": "PingFang SC, Helvetica, Arial, sans-serif", "font-size": "16"},
         )
-        compact = re.sub(r"\s+", " ", str(diagram.get(key) or "")).strip()[:240]
-        for line_index, line in enumerate(
-            textwrap.wrap(compact, width=68, break_long_words=True, break_on_hyphens=False)[:3]
-            or ["公开信息不足 / insufficient evidence"]
-        ):
+        for line_index, line in enumerate(wrapped[index]):
             tspan = ET.SubElement(
                 body_text,
                 f"{{{namespace}}}tspan",
                 x="50",
-                dy="0" if line_index == 0 else "18",
+                dy="0" if line_index == 0 else "23",
             )
             tspan.text = line
         if index < len(nodes) - 1:
@@ -1408,7 +1447,7 @@ def write_contribution_svg(diagram: Dict[str, Any], svg_path: Path) -> None:
                 svg,
                 f"{{{namespace}}}line",
                 x1="300",
-                y1=str(y_position + 116),
+                y1=str(y_position + heights[index]),
                 x2="300",
                 y2=str(y_positions[index + 1] - 10),
                 stroke="#333333",
@@ -1791,6 +1830,10 @@ REPORT_CSS = r"""
 .ai-audit>div:nth-child(4){grid-column:auto}.audit-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;background:#f8fafc;border:1px solid var(--line);border-top:0;padding:14px 16px;font-size:13px}.audit-meta p{margin:3px 0}.audit-meta .wide{grid-column:1/-1}.writing-details{border:1px solid var(--line);padding:12px 14px;margin-top:12px}.writing-details[open]>summary{margin-bottom:10px}.scorecard{min-width:980px}.scorecard small{color:var(--muted)}.indicator-score{display:inline-block;min-width:40px;text-align:center;font-weight:800;padding:2px 6px;border:1px solid #c9d1da;background:#f4f6f8}.score-1{background:#fff8dc;border-color:#d8c36a}.score-2{background:#fff0f2;border-color:#d998a4;color:#9a2d40}.metric-table{min-width:850px}.metric-table code{font-size:11px}.metric-scope{font-size:13px;color:#485666}.metric-warning{font-size:12px;background:#fff8dc;border-left:3px solid var(--opt);padding:9px 11px}.table-wrap+.metric-warning{margin-top:10px}@media(max-width:780px){.audit-meta{grid-template-columns:1fr}.audit-meta .wide{grid-column:auto}}
 .title-en{font-size:15px;line-height:1.45;margin:5px 0 0;color:#69717d}.toc small{color:var(--muted);font-size:12px}.topic-hpc_systems{background:#fff8dc;border-color:#d8c36a;color:#6f5a12}.summary-primary{border-left:4px solid var(--main);background:#f6f9fc;padding:16px 18px}.summary-primary p{margin:0;font-size:15px}.english-summary{margin-top:10px;border:1px solid var(--line);padding:10px 14px;color:#56616d;background:#fbfcfd}.english-summary p{font-size:13px;margin:9px 0 2px}@media print{body{background:#fff}.shell{max-width:none;padding:0}.paper{box-shadow:none;break-inside:avoid}.english-summary{display:block}.writing-details{break-inside:avoid}a{color:#222;text-decoration:none}}
 """
+
+
+# Let a longer contribution map grow rather than shrink its text to fit 520px.
+REPORT_CSS += "\n.visual-grid{align-items:start}.visual-grid>.visual:nth-child(2) img{max-height:none}\n"
 
 
 def confine_manifest_paths(manifest: Dict[str, Any], report_dir: Path) -> Dict[str, Any]:

@@ -19,6 +19,29 @@ import ai_writing_metrics as writing_metrics
 
 
 class ArxivReportPipelineTest(unittest.TestCase):
+    def test_contribution_preserves_long_mixed_text_and_fits_nodes(self):
+        text = "中文证据、限制与反例 WMWM KV-cache 1.55× ΔPPL。" * 12
+        diagram = dict.fromkeys(("problem", "approach", "mechanism", "evidence"), text)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "map.svg"
+            pipeline.write_contribution_svg(diagram, output)
+            root = ET.parse(output).getroot()
+            ns = {"s": "http://www.w3.org/2000/svg"}
+            boxes = root.findall("s:rect", ns)
+            bodies = [el for el in root.findall("s:text", ns) if el.findall("s:tspan", ns)]
+            self.assertEqual(len(bodies), 4)
+            for box, body in zip(boxes, bodies):
+                spans = body.findall("s:tspan", ns)
+                self.assertEqual("".join(el.text for el in spans), text.strip())
+                self.assertGreater(len(spans), 3)
+                baseline = float(body.attrib["y"]) + sum(float(el.attrib["dy"]) for el in spans)
+                self.assertLess(baseline, float(box.attrib["y"]) + float(box.attrib["height"]))
+            self.assertGreater(float(root.attrib["height"]), 650)
+
+    def test_legacy_topic_names_have_chinese_fallback(self):
+        for key in ("ai_infra", "hpc_systems", "ai4sci_infra"):
+            self.assertTrue(any("\u4e00" <= c <= "\u9fff" for c in pipeline.DEFAULT_TOPIC_LABELS[key]))
+
     def test_fetch_limited_revalidates_source_and_applies_delay(self):
         class FakeResponse:
             url = "https://arxiv.org/pdf/2608.13505"
