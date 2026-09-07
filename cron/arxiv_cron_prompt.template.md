@@ -1,7 +1,7 @@
 # Daily Paper Brief — Cron Runbook
 
-Execute the independent Daily Paper Brief arXiv-source AI Infra-priority / HPC Systems / AI4Sci monitoring
-and HTML delivery.
+Execute the independent Daily Paper Brief arXiv-source topic-prioritized
+monitoring and HTML delivery.
 This runbook is authoritative for the cron job.
 
 ## 0. Load the policy
@@ -19,7 +19,7 @@ Run this exact command without `cd`, output redirection, backgrounding, or a
 second concurrent launch:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_monitor_phd.py
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_monitor_phd.py
 ```
 
 The authoritative monitor artifacts are:
@@ -28,15 +28,19 @@ The authoritative monitor artifacts are:
 - `{{WORKSPACE_ROOT}}/arxiv_daily_YYYYMMDD.md`
 
 If stdout contains `SKIP_NO_NEW_PAPERS`, says there are no recommended papers,
-or `papers_to_expand.json` is an empty array, reply exactly:
+or the `papers` array inside `papers_to_expand.json` is empty, reply exactly:
 
 `今日 arXiv 无新论文更新，跳过 HTML 推送。`
 
 Do not create or resend yesterday's report.
 
 The order written to `papers_to_expand.json` is authoritative. Preserve
-`AI Infra → HPC Systems → AI4Sci Infra → other`; do not globally re-sort papers by numeric
+`{{TOPIC_ORDER}}`; do not globally re-sort papers by numeric
 score during review or HTML generation.
+
+The configured topics and their daily quotas are:
+
+{{TOPIC_GUIDE}}
 
 ## 2. Prepare source assets
 
@@ -44,7 +48,7 @@ Resolve today's date in `Asia/Shanghai` as both `YYYY-MM-DD` and `YYYYMMDD`.
 Run:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py prepare --input {{WORKSPACE_ROOT}}/papers_to_expand.json --date YYYY-MM-DD
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py prepare --input {{WORKSPACE_ROOT}}/papers_to_expand.json --date YYYY-MM-DD
 ```
 
 Read the emitted `assets_manifest.json` and `reviews.template.json`. For every
@@ -90,7 +94,7 @@ Review requirements:
    sources. Cite the evidence type in prose and never guess advisor or
    corresponding-author relationships.
 4. Produce the three required perspectives: systems/infrastructure,
-   AI4Sci/domain, and research value/risk.
+   domain/application, and research value/risk.
 5. Assess **AI-assisted writing signals**, not binary AI authorship. Read the
    generated `ai_writing_metrics.json`, verify material matches in the PDF, and
    complete every section check and all eight 0–2 indicators in the generated
@@ -138,18 +142,19 @@ be collected and merged in this cron run.
 ## 4. Wait, merge, and validate reviews.json
 
 When sub-agents are used, merge their exact batch paths with the deterministic
-controller. Repeat `--batch` once per spawned batch and fill the four counts
-from the monitor artifact:
+controller. Repeat `--batch` once per spawned batch and fill `--total-fetched`
+from the monitor artifact; per-topic counts are derived automatically from the
+assets manifest:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py merge-batches \
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py merge-batches \
   --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json \
   --reviews-template {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.template.json \
   --batch {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/review_batch_1.json \
   --batch {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/review_batch_N.json \
   --output {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json \
-  --total-fetched TOTAL --ai-infra-matches AI_COUNT --hpc-matches HPC_COUNT \
-  --ai4sci-matches AI4SCI_COUNT --top3-arxiv-id ID1 --top3-arxiv-id ID2 \
+  --total-fetched TOTAL \
+  --top3-arxiv-id ID1 --top3-arxiv-id ID2 \
   --top3-arxiv-id ID3 --wait-seconds 3600 --poll-seconds 15
 ```
 
@@ -159,14 +164,15 @@ the authoritative template order, validates the complete payload, and writes:
 `{{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json`
 
 When no sub-agents are used, write the same file in the main agent and run the
-normal builder validation. Fill `run_summary`, including `ai_infra_matches`,
-`hpc_matches`, and `ai4sci_matches`, from the monitor's actual stdout/artifacts.
+normal builder validation. Fill `run_summary` (`total_fetched` and
+`top3_arxiv_ids`) from the monitor's actual stdout/artifacts; `topic_counts`
+is derived automatically from each paper's persisted `primary_topic`.
 Do not place the full JSON in a large shell heredoc.
 
 Then build the standalone report:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_report_pipeline.py build --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json --reviews {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_report_pipeline.py build --assets-manifest {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/assets_manifest.json --reviews {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/reviews.json
 ```
 
 The build must fail rather than silently omit required reviews or contribution
@@ -178,13 +184,13 @@ HTML implementation.
 Do not create a Feishu Doc. First validate the final file without sending:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}} --dry-run
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}} --dry-run
 ```
 
 If validation succeeds, send it once:
 
 ```text
-{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}}
+{{WORKSPACE_ROOT}}/.venv/bin/python {{WORKSPACE_ROOT}}/src/arxiv_send_html_to_feishu.py --file {{WORKSPACE_ROOT}}/arxiv_reports/YYYYMMDD/daily_arxiv_report_YYYYMMDD.html --chat-id-file {{FEISHU_TARGET_FILE}}
 ```
 
 The sender requires the builder's matching `.receipt.json` and scopes
@@ -196,12 +202,12 @@ use `feishu_doc`, legacy Feishu JavaScript scripts, or a generic text-only
 
 Return a concise Chinese-first notification containing:
 
-- total fetched, recommended, AI Infra, HPC Systems, and AI4Sci match counts;
-- `AI Infra Focus / AI Infra 重点` first, followed by Top 3 in persisted topic
-  order;
-- an `HPC Systems / HPC 系统` section for standalone high-performance computing
-  runtimes, MPI/collectives, GPU computing, scheduling, storage, and resilience;
-- a secondary `AI4Sci Infra Watch / AI4Sci Infra 次级观察` section;
+- total fetched, recommended, and per-topic match counts in the configured
+  topic order (`{{TOPIC_ORDER}}`);
+- the primary topic's focus section first, followed by Top 3 in persisted
+  topic order;
+- one section per remaining configured topic, using the configured topic
+  labels and the persisted topic order;
 - source-main-figure success count and first-page-fallback count;
 - distribution of AI-writing-signal labels, with the reminder that labels do
   not establish AI authorship or misconduct;

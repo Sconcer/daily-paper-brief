@@ -1,17 +1,17 @@
 # Daily Paper Brief
 
-> Evidence-first literature monitoring and review reports for AI infrastructure, HPC systems, and AI4Sci.
+> Evidence-first arXiv literature monitoring and review reports — five preset topic profiles, or fully custom domains.
 
 [![CI](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/Sconcer/daily-paper-brief/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-[简体中文](README.zh-CN.md) · English
+[简体中文](README.zh-CN.md) · English · [Project page](https://sconcer.github.io/daily-paper-brief/)
 
 Daily Paper Brief turns a daily arXiv feed into a traceable research report: it selects papers, preserves source evidence, coordinates structured review, validates every required field, builds one offline HTML report, and sends that report once.
 
 Daily Paper Brief is independent. It is not affiliated with, endorsed by, or operated by arXiv or Cornell University.
 
-> **Release status: candidate, pending the published CI run.** Owner-controlled files use Apache-2.0; `humanizer-zh` remains under MIT. Runtime paper content and generated reports are not covered by the code license. See [the risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md).
+> **Release status: source-ready for owner review; local gates and public CI pass.** Owner-controlled files use Apache-2.0; `humanizer-zh` remains under MIT. Runtime paper content and generated reports are not covered by the code license. See [the risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md).
 
 ## What you get
 
@@ -39,13 +39,16 @@ python3 -m unittest discover -s tests -v
 
 The default suite does not contact arXiv or Feishu.
 
-### 2. Create a local configuration
+### 2. Choose a preset or customize
+
+List the bundled topic profiles and install one as the local config:
 
 ```bash
-cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+python3 scripts/setup_config.py --list
+python3 scripts/setup_config.py --profile ai-infra-hpc
 ```
 
-Review the categories, keywords, authors, institutions, scoring weights, and maximum daily paper count. The local file is ignored by Git.
+`config/profiles/` ships five presets: `ai-infra-hpc` (AI infrastructure, HPC systems, AI4Sci), `nlp-llm`, `vision-robotics`, `security-privacy`, and `science-computing`. To customize, edit the generated `arxiv-monitor-config-phd.json` — categories, keywords, the `topics` array (term groups, strong rules, quotas), authors, institutions, scoring weights, and the daily paper cap. `config/arxiv-monitor-config-phd.example.json` documents the full layout. The local file is ignored by Git; running `setup_config.py` without arguments prints the field guide.
 
 ### 3. Build the verified environment
 
@@ -86,10 +89,12 @@ A successful model turn is not a successful pipeline. Completion requires either
 
 | Path | Role |
 |---|---|
-| `arxiv_monitor_phd.py` | API/RSS retrieval, scoring, topic ordering, daily deduplication |
-| `arxiv_report_pipeline.py` | Asset retrieval, sanitization, schema validation, diagrams, HTML |
-| `ai_writing_metrics.py` | Reproducible descriptive metrics; never an authorship classifier |
-| `arxiv_send_html_to_feishu.py` | Receipt validation and destination-scoped Feishu file delivery |
+| `src/arxiv_monitor_phd.py` | API/RSS retrieval, scoring, topic ordering, daily deduplication |
+| `src/arxiv_report_pipeline.py` | Asset retrieval, sanitization, schema validation, diagrams, HTML |
+| `src/ai_writing_metrics.py` | Reproducible descriptive metrics; never an authorship classifier |
+| `src/arxiv_send_html_to_feishu.py` | Receipt validation and destination-scoped Feishu file delivery |
+| `config/` | Example monitor configuration plus selectable topic profiles; the real local config stays untracked at the repository root |
+| `config/profiles/` | Five selectable topic presets (`ai-infra-hpc`, `nlp-llm`, `vision-robotics`, `security-privacy`, `science-computing`) |
 | `cron/` | Portable prompt, policy, and OpenClaw job templates |
 | `skills/` | One Apache-2.0 academic baseline and one separately licensed MIT pattern catalog |
 | `tests/` | Offline units plus an opt-in network probe |
@@ -100,13 +105,13 @@ A successful model turn is not a successful pipeline. Completion requires either
 Run the monitor once:
 
 ```bash
-.venv/bin/python arxiv_monitor_phd.py
+.venv/bin/python src/arxiv_monitor_phd.py
 ```
 
 Prepare source assets:
 
 ```bash
-.venv/bin/python arxiv_report_pipeline.py prepare \
+.venv/bin/python src/arxiv_report_pipeline.py prepare \
   --input ./papers_to_expand.json \
   --date YYYY-MM-DD
 ```
@@ -178,6 +183,7 @@ Review the current [arXiv API access guidance](https://info.arxiv.org/help/api/i
 
 ## Documentation
 
+- [Agent skill](SKILL.md) — the repository itself is a loadable skill (clone or symlink into a skills directory)
 - [Open-source risk assessment](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)
 - [Name decision](docs/NAME_DECISION.md)
 - [Security model](docs/SECURITY.md)

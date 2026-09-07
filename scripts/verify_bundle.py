@@ -18,11 +18,17 @@ REQUIRED = (
     "NOTICE",
     "README.md",
     "README.zh-CN.md",
-    "arxiv_monitor_phd.py",
-    "arxiv-monitor-config-phd.example.json",
-    "arxiv_report_pipeline.py",
-    "ai_writing_metrics.py",
-    "arxiv_send_html_to_feishu.py",
+    "src/arxiv_monitor_phd.py",
+    "config/arxiv-monitor-config-phd.example.json",
+    "config/profiles/ai-infra-hpc.json",
+    "config/profiles/nlp-llm.json",
+    "config/profiles/vision-robotics.json",
+    "config/profiles/security-privacy.json",
+    "config/profiles/science-computing.json",
+    "scripts/setup_config.py",
+    "src/arxiv_report_pipeline.py",
+    "src/ai_writing_metrics.py",
+    "src/arxiv_send_html_to_feishu.py",
     "requirements.lock",
     "cron/arxiv_cron_prompt.template.md",
     "cron/arxiv_review_policy.template.md",
@@ -103,13 +109,20 @@ def main() -> int:
             if pattern.search(text):
                 errors.append(f"{label} found in {relative}")
 
-    for relative in (
-        "arxiv-monitor-config-phd.example.json",
+    json_targets = [
+        "config/arxiv-monitor-config-phd.example.json",
         "cron/arxiv-daily-review.job.template.json",
         "examples/arxiv_pushed_ids.example.json",
         "examples/papers_to_expand.example.json",
         "examples/sent.example.json",
-    ):
+    ]
+    profiles_dir = ROOT / "config" / "profiles"
+    if profiles_dir.is_dir():
+        json_targets.extend(
+            str(path.relative_to(ROOT))
+            for path in sorted(profiles_dir.glob("*.json"))
+        )
+    for relative in json_targets:
         try:
             json.loads((ROOT / relative).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -122,6 +135,16 @@ def main() -> int:
             errors.append(f"cron prompt is missing placeholder {placeholder}")
     if "{{WORKSPACE_ROOT}}" not in policy:
         errors.append("review policy is missing {{WORKSPACE_ROOT}}")
+    for placeholder in ("{{TOPIC_ORDER}}", "{{TOPIC_GUIDE}}"):
+        if placeholder not in prompt:
+            errors.append(f"cron prompt is missing placeholder {placeholder}")
+        if placeholder not in policy:
+            errors.append(f"review policy is missing placeholder {placeholder}")
+    if "{{TOPIC_ORDER}}" not in (ROOT / "cron/arxiv-daily-review.job.template.json").read_text(encoding="utf-8"):
+        errors.append("cron job template is missing {{TOPIC_ORDER}}")
+    for removed_flag in ("--ai-infra-matches", "--hpc-matches", "--ai4sci-matches"):
+        if removed_flag in prompt:
+            errors.append(f"cron prompt still references removed merge-batches flag {removed_flag}")
     if "{{FEISHU_CHAT_ID}}" in prompt:
         errors.append("cron prompt must not embed a concrete delivery destination")
     if (ROOT / "skills/academic-writing-refiner").exists():

@@ -11,6 +11,8 @@ from unittest import mock
 
 from PIL import Image
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 import arxiv_report_pipeline as pipeline
 import arxiv_send_html_to_feishu as sender
 import ai_writing_metrics as writing_metrics
@@ -323,6 +325,7 @@ class ArxivReportPipelineTest(unittest.TestCase):
                 "schema_version": 2,
                 "date": "2026-08-14",
                 "report_dir": str(root),
+                "topic_labels": {"ai_infra": "AI 基础设施 · 主主题"},
                 "papers": [
                     {
                         "arxiv_id": "2608.13505v1",
@@ -371,9 +374,7 @@ class ArxivReportPipelineTest(unittest.TestCase):
                 "run_summary": {
                     "total_fetched": 300,
                     "recommended": 1,
-                    "ai_infra_matches": 1,
-                    "hpc_matches": 0,
-                    "ai4sci_matches": 0,
+                    "topic_counts": {"ai_infra": 1},
                     "top3_arxiv_ids": ["2608.13505v1"],
                 },
                 "papers": [
@@ -487,6 +488,10 @@ class ArxivReportPipelineTest(unittest.TestCase):
             merged_review = pipeline.load_json(reviews_path)
             self.assertEqual(merged_review["papers"], review["papers"])
             self.assertEqual(merged_review["run_summary"], review["run_summary"])
+            # topic_counts are recomputed from the manifest, not taken from input.
+            self.assertEqual(
+                merged_review["run_summary"]["topic_counts"], {"ai_infra": 1}
+            )
             with self.assertRaisesRegex(
                 pipeline.PipelineError,
                 "review batches not ready before timeout",

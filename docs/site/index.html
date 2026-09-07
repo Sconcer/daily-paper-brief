@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Paper Brief · 每日论文简报 —— 项目介绍</title>
+<meta name="description" content="Daily Paper Brief：证据优先的 arXiv 论文监控与评审报告流水线，五个领域预设可选，也可完全自定义。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="nav-brand">Daily Paper Brief</span>
+    <div class="nav-links">
+      <a href="#desc">项目一页看懂</a>
+      <a href="#figures">图解</a>
+      <a href="#demos">在线 Demo</a>
+      <a href="#deploy">部署验证</a>
+      <a href="https://github.com/Sconcer/daily-paper-brief">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner reveal">
+    <p class="kicker">Evidence-first · Daily arXiv Report</p>
+    <h1>Daily Paper Brief<br><span class="thin">每日论文简报：从 arXiv 新论文到一份可追踪的中文评审报告</span></h1>
+    <p class="lead">证据优先的论文监控流水线，选题领域可选五个预设之一或完全自定义：筛选论文、保存来源证据、组织结构化评审、逐字段校验，生成单文件离线 HTML，并以幂等方式投递一次。独立项目，与 arXiv 或 Cornell University 无隶属、授权或背书关系。</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/Sconcer/daily-paper-brief">查看仓库</a>
+      <a class="btn btn-ghost" href="#demos">直接试玩 Demo</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">5</div><div class="lbl">相互隔离的流水线阶段</div></div>
+      <div class="hero-stat"><div class="num">8 维</div><div class="lbl">加权选题评分</div></div>
+      <div class="hero-stat"><div class="num">0–16</div><div class="lbl">写作信号序数审计分</div></div>
+      <div class="hero-stat"><div class="num">1 份</div><div class="lbl">每日幂等投递的 HTML 报告</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ==================== 01 一页中文描述 ==================== -->
+<section id="desc">
+  <div class="sec-head reveal">
+    <div class="sec-index">01 / 项目一页看懂</div>
+    <h2>这个项目做什么</h2>
+    <p>Daily Paper Brief 把每日 arXiv 来源论文转成一份可追踪的研究报告。它强调的是<strong>证据链与确定性</strong>：每个阶段只消费上一阶段的显式产物，模型评审的输出必须经过逐字段校验才能进入报告。选题领域可从 5 个预设 profile 选择或完全自定义。</p>
+  </div>
+
+  <div class="desc-grid">
+    <div class="card ok-card reveal">
+      <h3>你会得到什么</h3>
+      <ul>
+        <li>按 AI Infra → HPC Systems → AI4Sci 主题排序、配额受控的每日选题（默认 ≤ 18 篇）；</li>
+        <li>每篇论文的来源清单、提取正文、主图（或显式兜底）与写作描述量；</li>
+        <li>中文为主的结构化评审：三视角分析、claim–evidence 核查、课题组画像、可复现性与工件风险；</li>
+        <li>固定记分卡 <code>AI-writing-signals-v1.0</code> 的写作辅助迹象审计（含证据位置、反证与混杂因素）；</li>
+        <li>一份自带构建收据（sha256）的单文件离线 HTML 报告，以及一次幂等的飞书投递。</li>
+      </ul>
+      <div class="flow-strip">
+        Monitor → Prepare → Review → Gate → Deliver<br>
+        监控选题 → 证据准备 → 结构化评审 → 校验构建 → 幂等投递
+      </div>
+    </div>
+
+    <div class="card not-card reveal">
+      <h3>它不做什么</h3>
+      <ul>
+        <li>不做正式同行评审，不证明引用正确；</li>
+        <li>不判断学术不端，不输出所谓“AI 生成百分比”；</li>
+        <li>“AI 辅助写作迹象”是序数证据审计，任何分级都不能证明作者身份或研究有效性；</li>
+        <li>“Agent 正常返回”不算流水线成功——必须满足终止契约（无新论文已验证，或评审完整 + 构建成功 + dry-run 通过 + 取得 message_id）。</li>
+      </ul>
+      <h3 style="margin-top:18px;">信任与版权边界</h3>
+      <ul>
+        <li>论文 PDF / HTML / 作者主页一律按不可信输入处理；</li>
+        <li>凭据只在 HTML 与收据一致后读取；<code>--dry-run</code> 不碰凭据和网络；</li>
+        <li>论文内容权利逐篇独立，公开托管含主图/全文的报告前需逐项确认权利依据。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 02 两张图 ==================== -->
+<section id="figures">
+  <div class="sec-head reveal">
+    <div class="sec-index">02 / 图解</div>
+    <h2>两张图看懂流水线</h2>
+    <p>图 1 给出五个阶段的职责、入口脚本与关键产物；图 2 给出每日论文数量如何沿确定性规则收敛为一份报告。</p>
+  </div>
+  <figure class="fig reveal">
+    <img src="assets/fig1-architecture.svg" alt="图 1：Daily Paper Brief 五阶段流水线架构图">
+  </figure>
+  <figure class="fig reveal">
+    <img src="assets/fig2-dataflow.svg" alt="图 2：每日数据流漏斗，从 arXiv 当日新论文到一次投递">
+  </figure>
+</section>
+
+<!-- ==================== 03 Demos ==================== -->
+<section id="demos">
+  <div class="sec-head reveal">
+    <div class="sec-index">03 / 在线 Demo</div>
+    <h2>三个可以上手的小实验</h2>
+    <p>全部在浏览器本地运行，不访问网络。论文与评审内容均为合成示例，不对应任何真实论文。</p>
+  </div>
+
+  <!-- Demo A -->
+  <div class="demo reveal">
+    <div class="demo-head">
+      <span class="demo-tag">Demo A</span>
+      <h3>选题评分排序器</h3>
+      <span class="note">复刻 <code>arxiv_monitor_phd.py</code> 的八维加权评分（简化版），拖动权重与门槛观察排序变化；演示默认 ai-infra-hpc profile</span>
+    </div>
+    <div class="demo-body">
+      <span class="synthetic-flag">合成示例数据 · 简化复刻，权重可调；词条匹配等细节以仓库代码为准</span>
+      <div class="demo-a-grid">
+        <div class="w-panel">
+          <div id="demo-a-weights"></div>
+          <div class="threshold">
+            <label>入选门槛 min_score <span class="val" id="demo-a-threshold-val">4.2</span></label>
+            <input type="range" id="demo-a-threshold" min="0" max="10" step="0.1" value="4.2">
+          </div>
+          <p style="font-size:12.5px;color:var(--ink-faint);margin-top:14px;">评分规则：关键词命中标题 +3 / 摘要 +2；AI Infra 需 AI 词与系统词共现且标题含系统词；HPC 需锚点词与机制词共现；AI4Sci 需领域词与基础设施词共现；关注作者 +2.5、机构 +1.5；24h 内 +1.0 / 72h 内 +0.5；研究相关性封顶 5。总分 = Σ 子分 × 权重，封顶 10。</p>
+        </div>
+        <div>
+          <p id="demo-a-summary" style="font-size:13.5px;color:var(--ink-soft);margin-top:0;"></p>
+          <div id="demo-a-results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo B -->
+  <div class="demo reveal">
+    <div class="demo-head">
+      <span class="demo-tag">Demo B</span>
+      <h3>报告卡片样式预览</h3>
+      <span class="note">按 <code>arxiv_report_pipeline.py</code> 生成的 Daily arXiv Report 结构渲染（静态合成示例）</span>
+    </div>
+    <div class="demo-body">
+      <span class="synthetic-flag">合成示例 · 非真实论文评审结果</span>
+      <div class="report-card">
+        <div class="rc-hero">
+          <div class="rc-title">Daily arXiv Report / 每日 arXiv 论文分析报告</div>
+          <div class="rc-sub">2026-09-04 · 抓取 412 · 推荐 6 · AI Infra 3 · HPC 2 · AI4Sci 1（数字均为演示占位）</div>
+        </div>
+        <div class="rc-notice">解释边界：“AI 辅助写作迹象”是结构化的序数证据审计。自动指标未经单篇论文校准，不是概率；任何分级都不能证明 AI 作者身份、学术不端、抄袭或研究无效。</div>
+        <div class="rc-paper">
+          <div class="rc-paper-head">
+            <div class="rc-rank">1</div>
+            <div>
+              <h4>面向千卡集群大模型预训练的流水线并行通信压缩框架</h4>
+              <div class="rc-title-en">A Pipeline-Parallel Communication Compression Framework for Thousand-GPU LLM Pretraining (Synthetic)</div>
+              <div class="rc-meta">
+                <span>林一帆, 周四 · 示例大学</span>
+                <span>cs.DC / cs.LG</span>
+                <span class="rc-topic">AI Infra</span>
+              </div>
+            </div>
+            <span class="rc-priority">优先级：高</span>
+          </div>
+
+          <div class="rc-verdict"><strong>为什么值得看：</strong>把通信压缩显式嵌入流水线并行的气泡区间，声称在千卡规模下端到端吞吐提升一个可见量级，且给出了集群拓扑与同步频率的消融。（合成示例）</div>
+
+          <div class="rc-sec-label">AI 辅助写作迹象（演示）</div>
+          <div class="rc-audit">
+            <div class="rc-audit-grid">
+              <div><div class="k">分级</div><div class="v">低（low）</div></div>
+              <div><div class="k">置信度</div><div class="v">High</div></div>
+              <div><div class="k">序数审计分</div><div class="v">2 / 16</div></div>
+              <div><div class="k">使用披露</div><div class="v">未发现</div></div>
+              <div><div class="k">阳性指标族</div><div class="v">lexical_style</div></div>
+              <div><div class="k">审阅覆盖度</div><div class="v">摘要/引言 + 4/5 内容区</div></div>
+            </div>
+            <div class="rc-caveat">该结果只评估写作辅助迹象，不能证明作者身份、学术不端、抄袭或研究有效性。</div>
+          </div>
+
+          <div class="rc-sec-label">主张—证据核查 / Claim–evidence audit</div>
+          <table class="rc-claims">
+            <tr><th>主张</th><th>证据</th><th>强度</th></tr>
+            <tr><td>通信开销占比显著下降</td><td>1024 GPU 模拟扩展曲线 + 逐层计时表</td><td>较强</td></tr>
+            <tr><td>精度无损</td><td>仅给 3 个种子的验证集曲线，未给统计检验</td><td>有限</td></tr>
+          </table>
+
+          <div class="rc-sec-label">多视角分析（节选）</div>
+          <div class="rc-grid">
+            <div class="rc-cell"><div class="t">系统与基础设施视角</div>压缩算子与调度耦合的实现成本被低估；故障恢复路径未讨论。</div>
+            <div class="rc-cell"><div class="t">研究价值与风险</div>方向有复用价值；风险在于基线实现细节未公开。</div>
+            <div class="rc-cell"><div class="t">评测有效性</div>缺真实集群上的长时运行数据，外推需谨慎。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo C -->
+  <div class="demo reveal">
+    <div class="demo-head">
+      <span class="demo-tag">Demo C</span>
+      <h3>写作信号记分卡 <span style="font-size:13px;font-family:var(--mono);color:var(--ink-faint);">AI-writing-signals-v1.0</span></h3>
+      <span class="note">8 个固定指标各记 0/1/2，标签规则与校验器逻辑一致</span>
+    </div>
+    <div class="demo-body">
+      <span class="synthetic-flag">交互演示 · 评分锚点：0=未观察到；1=单处孤立弱证据；2=两处以上实质证据或一个已验证直接残留</span>
+      <div class="score-grid">
+        <div id="demo-c-metrics"></div>
+        <div class="score-side">
+          <div class="total" id="demo-c-total">0<small> / 16</small></div>
+          <div><span class="label-pill lp-low" id="demo-c-label">low（低）</span></div>
+          <div class="rule" id="demo-c-confidence" style="margin-top:10px;"></div>
+          <div class="rule" id="demo-c-rule"></div>
+          <div class="toggle-line"><input type="checkbox" id="demo-c-coverage" checked><label for="demo-c-coverage">覆盖门达标（词数/摘要引言/内容区/披露检索）</label></div>
+          <div class="toggle-line"><input type="checkbox" id="demo-c-disclosed"><label for="demo-c-disclosed">论文中已披露写作辅助工具的使用</label></div>
+          <div class="caveat-box">该结果只评估写作辅助迹象，不能证明作者身份、学术不端、抄袭或研究有效性。0–16 为序数审计分，不是概率。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 04 部署验证 ==================== -->
+<section id="deploy">
+  <div class="sec-head reveal">
+    <div class="sec-index">04 / 部署验证</div>
+    <h2>拉取之后，多久能跑起来</h2>
+    <p>以下步骤在一台干净环境中按顺序执行过：克隆仓库后无需任何手工修补即可通过全部离线门禁。</p>
+  </div>
+
+  <div class="card reveal deploy-steps">
+    <div class="step">
+      <div>
+        <h4>克隆并检查环境</h4>
+        <p>需要 Python ≥ 3.12 与 Poppler（<code>pdftotext</code> / <code>pdftoppm</code>）。</p>
+        <pre>git clone git@github.com:Sconcer/daily-paper-brief.git
+cd daily-paper-brief
+python3 --version   # ≥ 3.12
+which pdftotext pdftoppm</pre>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <h4>一条命令完成引导</h4>
+        <p><code>scripts/bootstrap.sh</code> 自动建 <code>.venv</code>、按哈希锁安装仅有的 3 个依赖（requests / lxml / Pillow）、复制本地配置模板，并依次跑全部离线门禁与单元测试。</p>
+        <pre>./scripts/bootstrap.sh</pre>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <h4>离线门禁（不访问 arXiv / 飞书）</h4>
+        <pre>python3 scripts/verify_bundle.py
+python3 scripts/security_audit.py
+python3 scripts/check_open_source_readiness.py
+python3 -m unittest discover -s tests -v</pre>
+      </div>
+    </div>
+    <div class="step">
+      <div>
+        <h4>本页自身的部署</h4>
+        <p>本页是 <code>docs/site/</code> 下的纯静态站点，由 GitHub Actions（<code>pages.yml</code>）发布到 GitHub Pages；本地预览只需 <code>python3 -m http.server -d docs/site</code>。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card reveal" style="margin-top:22px;">
+    <h3>干净克隆验证记录</h3>
+    <ul class="check-list">
+      <li>全新 <code>git clone</code> 后 <code>verify_bundle.py</code> 通过：必需文件齐全、无私有状态文件、无凭据模式命中；</li>
+      <li><code>security_audit.py</code> 与 <code>check_open_source_readiness.py</code> 通过；</li>
+      <li><code>unittest discover -s tests -v</code> 全部用例通过（默认套件离线）；</li>
+      <li><code>bootstrap.sh</code> 在已装 Poppler 的机器上一条命令完成环境构建与测试；</li>
+      <li>静态网页本地 <code>http.server</code> 预览渲染正常，无外部依赖即可浏览（字体走 CDN，可降级到系统字体）。</li>
+    </ul>
+    <p class="verify-meta">验证环境：macOS（Apple Silicon），Python 3.12.13，Poppler 经 Homebrew 安装；验证日期 2026-09-04，从 <code>git clone</code> 到全部测试通过约 30 秒。唯一的外部前置是 Poppler——未安装时 bootstrap 会以退出码 2 明确提示。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="f-title">Daily Paper Brief</div>
+    <p class="f-line">独立项目，与 arXiv 或 Cornell University 无隶属、授权或背书关系。</p>
+    <p class="f-line">Thank you to arXiv for use of its open access interoperability.</p>
+    <p class="f-line">自有代码采用 <a href="https://github.com/Sconcer/daily-paper-brief/blob/main/LICENSE">Apache-2.0</a>；随仓库的 humanizer-zh 快照保持 MIT。论文内容与生成报告不自动获得代码许可证授权。</p>
+    <p class="f-line"><a href="https://github.com/Sconcer/daily-paper-brief">github.com/Sconcer/daily-paper-brief</a></p>
+  </div>
+</footer>
+
+<script src="demos.js"></script>
+</body>
+</html>

@@ -25,11 +25,96 @@ SAFE_CRON_RE = re.compile(r"^[0-9*/?,\- ]+$")
 LEGACY_JOB_NAMES = {
     "arXiv 每日论文 HTML 评审推送（AI Infra 优先）",
     "LitFacet 每日论文证据评审（AI Infra 优先）",
+    "Daily Paper Brief 每日论文分析报告（AI Infra 优先）",
 }
+TOPIC_ID_RE = re.compile(r"[a-z0-9_]+")
+# Keep in sync with ArxivMonitorPhD._legacy_topics_from_keywords.
+LEGACY_KEYWORD_KEYS = ("ai_infra_ai_terms", "hpc_systems_anchor", "ai4sci_domains")
+LEGACY_TOPIC_DEFAULTS = (
+    {"id": "ai_infra", "label": "AI Infra", "quota": None},
+    {"id": "hpc_systems", "label": "HPC Systems", "quota": {"cap": 4, "divisor": 4}},
+    {"id": "ai4sci_infra", "label": "AI4Sci Infra", "quota": {"cap": 3, "divisor": 6}},
+)
 
 
 class InstallError(RuntimeError):
     pass
+
+
+def require_safe_topic_text(name: str, value: str) -> str:
+    """Allow CJK text, spaces, arrows, and punctuation; reject braces/control chars."""
+    if not value or "{" in value or "}" in value:
+        raise InstallError(f"unsafe or empty {name}: {value!r}")
+    for character in value:
+        codepoint = ord(character)
+        if (codepoint < 0x20 and character != "\n") or codepoint == 0x7F:
+            raise InstallError(f"unsafe control character in {name}: {value!r}")
+    return value
+
+
+def load_render_topics(root: Path) -> list[dict[str, Any]]:
+    """Read configured topics (id/label/quota) from the local monitor config."""
+    config_path = root / "arxiv-monitor-config-phd.json"
+    if not config_path.is_file():
+        raise InstallError(
+            "missing local arxiv-monitor-config-phd.json; "
+            "run scripts/setup_config.py --list and pick one with --profile NAME first"
+        )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    raw_topics = config.get("topics")
+    topics: list[dict[str, Any]] = []
+    if isinstance(raw_topics, list) and raw_topics:
+        seen: set[str] = set()
+        for entry in raw_topics:
+            if not isinstance(entry, dict):
+                raise InstallError("each topic in the local config must be an object")
+            topic_id = str(entry.get("id") or "").strip()
+            if not TOPIC_ID_RE.fullmatch(topic_id):
+                raise InstallError(f"invalid topic id in local config: {topic_id!r}")
+            if topic_id in seen:
+                raise InstallError(f"duplicate topic id in local config: {topic_id!r}")
+            seen.add(topic_id)
+            topics.append(
+                {
+                    "id": topic_id,
+                    "label": str(entry.get("label") or topic_id),
+                    "quota": entry.get("quota"),
+                }
+            )
+    else:
+        keywords = config.get("keywords") or {}
+        if not any(keywords.get(key) for key in LEGACY_KEYWORD_KEYS):
+            raise InstallError(
+                "local config defines no topics; add a topics array or regenerate "
+                "it with scripts/setup_config.py --profile NAME"
+            )
+        topics = [dict(topic) for topic in LEGACY_TOPIC_DEFAULTS]
+
+    by_id = {topic["id"]: topic for topic in topics}
+    configured = config.get("topic_priority")
+    order: list[str] = []
+    if isinstance(configured, list):
+        order.extend(str(value) for value in configured if str(value) in by_id)
+    order.extend(topic["id"] for topic in topics if topic["id"] not in order)
+    return [by_id[topic_id] for topic_id in order]
+
+
+def topic_placeholder_values(topics: list[dict[str, Any]]) -> dict[str, str]:
+    topic_order = " → ".join(topic["label"] for topic in topics) + " → 其他"
+    lines = []
+    for topic in topics:
+        quota = topic.get("quota")
+        if quota is None:
+            quota_text = "弹性配额，占用每日剩余名额"
+        else:
+            cap = int(quota["cap"]) if isinstance(quota, dict) else int(quota)
+            quota_text = f"每日配额上限 {cap} 篇"
+        lines.append(f"- {topic['label']}（`{topic['id']}`）：{quota_text}")
+    topic_guide = "\n".join(lines)
+    return {
+        "TOPIC_ORDER": require_safe_topic_text("TOPIC_ORDER", topic_order),
+        "TOPIC_GUIDE": require_safe_topic_text("TOPIC_GUIDE", topic_guide),
+    }
 
 
 def atomic_write(path: Path, text: str) -> None:
@@ -77,11 +162,11 @@ def require_safe_value(name: str, value: str, pattern: re.Pattern[str]) -> str:
 
 def require_bundle(root: Path) -> None:
     required = (
-        "arxiv_monitor_phd.py",
-        "arxiv-monitor-config-phd.example.json",
-        "arxiv_report_pipeline.py",
-        "ai_writing_metrics.py",
-        "arxiv_send_html_to_feishu.py",
+        "src/arxiv_monitor_phd.py",
+        "config/arxiv-monitor-config-phd.example.json",
+        "src/arxiv_report_pipeline.py",
+        "src/ai_writing_metrics.py",
+        "src/arxiv_send_html_to_feishu.py",
         "cron/arxiv_cron_prompt.template.md",
         "cron/arxiv_review_policy.template.md",
         "cron/arxiv-daily-review.job.template.json",
@@ -103,6 +188,7 @@ def render_runtime(
     cron_expr: str,
     timezone: str,
     agent_id: str,
+    topic_values: dict[str, str],
 ) -> tuple[Path, Path, Path, Path, dict[str, Any]]:
     prompt_path = runtime_root / "arxiv_cron_prompt.md"
     policy_path = runtime_root / "arxiv_review_policy.md"
@@ -119,6 +205,7 @@ def render_runtime(
         "CRON_EXPR": cron_expr,
         "TIMEZONE": timezone,
         "AGENT_ID": agent_id,
+        **topic_values,
     }
     prompt = render_text(
         (root / "cron/arxiv_cron_prompt.template.md").read_text(encoding="utf-8"),
@@ -254,8 +341,9 @@ def main(argv: list[str] | None = None) -> int:
         timezone = require_safe_value("timezone", args.timezone, SAFE_TIMEZONE_RE)
         agent_id = require_safe_value("agent id", args.agent_id, SAFE_ID_RE)
         cron_expr = require_safe_value("cron expression", args.cron_expr, SAFE_CRON_RE)
+        topic_values = topic_placeholder_values(load_render_topics(root))
         prompt_path, policy_path, job_path, target_path, job = render_runtime(
-            root, runtime_root, chat_id, model, cron_expr, timezone, agent_id
+            root, runtime_root, chat_id, model, cron_expr, timezone, agent_id, topic_values
         )
 
         result: dict[str, Any] = {

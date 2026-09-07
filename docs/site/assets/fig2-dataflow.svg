@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1080" height="640" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 640" font-family="'Noto Sans CJK SC','PingFang SC','Hiragino Sans GB',sans-serif">
+  <defs>
+    <marker id="arr2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7a8699"/>
+    </marker>
+  </defs>
+
+  <rect width="1080" height="640" fill="#FFFFFF"/>
+
+  <text x="40" y="46" font-size="21" font-weight="bold" fill="#17263a">每日数据流：从论文源到一次投递</text>
+  <text x="40" y="70" font-size="12.5" fill="#5b6675">数量逐级收敛，每一步都有确定性规则；任何一步失败即终止，不发送旧报告</text>
+
+  <!-- ===== 漏斗主体（居中轴 x=380） ===== -->
+  <!-- 层 1 -->
+  <rect x="60" y="98" width="640" height="66" rx="8" fill="#4477AA"/>
+  <text x="86" y="127" font-size="14" font-weight="bold" fill="#FFFFFF">arXiv 当日新论文</text>
+  <text x="86" y="149" font-size="11" fill="#dbe6f2">API / RSS 抓取 · 覆盖 cs.DC / cs.LG / cs.CL / cs.AI 等分类</text>
+  <text x="674" y="139" text-anchor="end" font-size="15" font-weight="bold" fill="#FFFFFF">≈ 数百篇</text>
+
+  <!-- 层 2 -->
+  <rect x="110" y="198" width="540" height="66" rx="8" fill="#5b8fbf"/>
+  <text x="136" y="227" font-size="14" font-weight="bold" fill="#FFFFFF">八维加权评分</text>
+  <text x="136" y="249" font-size="11" fill="#e3ecf5">关键词 · AI Infra · HPC · AI4Sci · 作者 · 机构 · 时效 · 研究相关性</text>
+  <text x="624" y="239" text-anchor="end" font-size="15" font-weight="bold" fill="#FFFFFF">0–10 分</text>
+
+  <!-- 层 3 -->
+  <rect x="160" y="298" width="440" height="66" rx="8" fill="#7ba8cf"/>
+  <text x="186" y="327" font-size="14" font-weight="bold" fill="#FFFFFF">门槛过滤 + 主题配额</text>
+  <text x="186" y="349" font-size="11" fill="#eaf1f8">score ≥ 4.2 · AI Infra / HPC Systems / AI4Sci 分组配额 · 每日去重</text>
+  <text x="574" y="339" text-anchor="end" font-size="15" font-weight="bold" fill="#FFFFFF">≤ 18 篇</text>
+
+  <!-- 层 4 -->
+  <rect x="210" y="398" width="340" height="66" rx="8" fill="#D68945"/>
+  <text x="236" y="427" font-size="14" font-weight="bold" fill="#FFFFFF">结构化评审（模型批次）</text>
+  <text x="236" y="449" font-size="11" fill="#f7e8d4">中文总结 · 三视角 · 证据核查 · 记分卡</text>
+  <text x="524" y="439" text-anchor="end" font-size="15" font-weight="bold" fill="#FFFFFF">逐篇 JSON</text>
+
+  <!-- 层 5 -->
+  <rect x="260" y="498" width="240" height="66" rx="8" fill="#17263a"/>
+  <text x="286" y="527" font-size="14" font-weight="bold" fill="#FFFFFF">校验 · 构建 · 投递</text>
+  <text x="286" y="549" font-size="11" fill="#c9d4e2">单文件 HTML + 收据</text>
+  <text x="474" y="539" text-anchor="end" font-size="15" font-weight="bold" fill="#FFFFFF">飞书 ×1</text>
+
+  <!-- 层间箭头 -->
+  <line x1="380" y1="166" x2="380" y2="194" stroke="#7a8699" stroke-width="1.8" marker-end="url(#arr2)"/>
+  <line x1="380" y1="266" x2="380" y2="294" stroke="#7a8699" stroke-width="1.8" marker-end="url(#arr2)"/>
+  <line x1="380" y1="366" x2="380" y2="394" stroke="#7a8699" stroke-width="1.8" marker-end="url(#arr2)"/>
+  <line x1="380" y1="466" x2="380" y2="494" stroke="#7a8699" stroke-width="1.8" marker-end="url(#arr2)"/>
+
+  <!-- ===== 右侧规则注记 ===== -->
+  <g>
+    <line x1="700" y1="131" x2="756" y2="131" stroke="#c3ccd8" stroke-width="1.2"/>
+    <rect x="760" y="102" width="280" height="58" rx="6" fill="#FAFBFC" stroke="#d7dee7"/>
+    <text x="774" y="125" font-size="11" font-weight="bold" fill="#2c3e50">来源与致谢</text>
+    <text x="774" y="143" font-size="10" fill="#5b6675">独立项目，与 arXiv 无隶属关系；</text>
+    <text x="774" y="157" font-size="10" fill="#5b6675">按其要求保留开放互操作致谢。</text>
+  </g>
+
+  <g>
+    <line x1="650" y1="231" x2="756" y2="231" stroke="#c3ccd8" stroke-width="1.2"/>
+    <rect x="760" y="202" width="280" height="58" rx="6" fill="#FAFBFC" stroke="#d7dee7"/>
+    <text x="774" y="225" font-size="11" font-weight="bold" fill="#2c3e50">默认权重</text>
+    <text x="774" y="243" font-size="10" fill="#5b6675">AI Infra 0.35 · 关键词 0.20 · HPC 0.20</text>
+    <text x="774" y="257" font-size="10" fill="#5b6675">相关性 0.15 · 其余 0.10 / 0.05 / 0.05</text>
+  </g>
+
+  <g>
+    <line x1="600" y1="331" x2="756" y2="331" stroke="#c3ccd8" stroke-width="1.2"/>
+    <rect x="760" y="302" width="280" height="58" rx="6" fill="#FAFBFC" stroke="#d7dee7"/>
+    <text x="774" y="325" font-size="11" font-weight="bold" fill="#2c3e50">配额规则（每日上限 18）</text>
+    <text x="774" y="343" font-size="10" fill="#5b6675">HPC ≤ 4 · AI4Sci ≤ 3 · 其余归 AI Infra，</text>
+    <text x="774" y="357" font-size="10" fill="#5b6675">名额不足时按总分补齐。</text>
+  </g>
+
+  <g>
+    <line x1="550" y1="431" x2="756" y2="431" stroke="#c3ccd8" stroke-width="1.2"/>
+    <rect x="760" y="402" width="280" height="58" rx="6" fill="#FAFBFC" stroke="#e8d9c3"/>
+    <text x="774" y="425" font-size="11" font-weight="bold" fill="#2c3e50">唯一的非确定性阶段</text>
+    <text x="774" y="443" font-size="10" fill="#5b6675">评审输出受 JSON Schema 约束；</text>
+    <text x="774" y="457" font-size="10" fill="#5b6675">缺字段、分数不自洽即拒收。</text>
+  </g>
+
+  <g>
+    <line x1="500" y1="531" x2="756" y2="531" stroke="#c3ccd8" stroke-width="1.2"/>
+    <rect x="760" y="502" width="280" height="58" rx="6" fill="#FAFBFC" stroke="#d7dee7"/>
+    <text x="774" y="525" font-size="11" font-weight="bold" fill="#2c3e50">幂等投递</text>
+    <text x="774" y="543" font-size="10" fill="#5b6675">sha256 收据一致性校验；按“内容+目标群”</text>
+    <text x="774" y="557" font-size="10" fill="#5b6675">去重，重跑不会产生第二条消息。</text>
+  </g>
+
+  <!-- 图注 -->
+  <text x="1046" y="616" text-anchor="end" font-size="10.5" fill="#7F8C8D" font-style="italic">图 2　每日数据流漏斗：论文数量沿五层规则收敛为一份可追踪报告，右侧为各层对应的确定性规则。</text>
+</svg>

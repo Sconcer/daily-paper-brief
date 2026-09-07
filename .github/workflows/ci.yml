@@ -33,9 +33,7 @@ jobs:
         run: python -m pip check
 
       - name: Compile Python
-        run: >-
-          python -m compileall -q arxiv_monitor_phd.py arxiv_report_pipeline.py
-          arxiv_send_html_to_feishu.py ai_writing_metrics.py scripts tests
+        run: python -m compileall -q src scripts tests
 
       - name: Run repository gates
         run: |

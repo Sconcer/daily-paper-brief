@@ -1,0 +1,235 @@
+{
+  "name": "arXiv 安全 / 隐私监控 - 博士生版",
+  "description": "安全与隐私方向预设：系统与网络安全、隐私与机器学习安全",
+
+  "categories": [
+    "cs.CR",
+    "cs.LG",
+    "cs.AI",
+    "cs.NI"
+  ],
+
+  "keywords": {
+    "must_include": [
+      "security",
+      "privacy",
+      "attack",
+      "defense",
+      "vulnerability",
+      "exploit",
+      "cryptography",
+      "encryption",
+      "differential privacy",
+      "federated learning",
+      "homomorphic encryption",
+      "secure multi-party computation",
+      "zero-knowledge",
+      "adversarial",
+      "backdoor",
+      "data poisoning",
+      "fuzzing",
+      "malware",
+      "intrusion detection",
+      "authentication",
+      "access control",
+      "side channel",
+      "memory safety",
+      "sandbox",
+      "jailbreak",
+      "prompt injection",
+      "watermark",
+      "robustness",
+      "forensics",
+      "threat model",
+      "trusted execution",
+      "membership inference",
+      "model extraction",
+      "machine unlearning"
+    ],
+    "exclude": [
+      "medical imaging",
+      "healthcare diagnosis",
+      "clinical trial"
+    ]
+  },
+
+  "topics": [
+    {
+      "id": "systems_security",
+      "label": "系统与网络安全",
+      "base": 4.0,
+      "cap": 8.0,
+      "score_weight": 0.35,
+      "term_groups": [
+        {
+          "name": "target_terms",
+          "cap": 3,
+          "weight": 0.75,
+          "terms": [
+            "operating system",
+            "kernel",
+            "browser",
+            "compiler",
+            "network",
+            "protocol",
+            "cloud",
+            "container",
+            "virtual machine",
+            "firmware",
+            "hardware",
+            "side channel",
+            "memory safety",
+            "authentication",
+            "TLS"
+          ]
+        },
+        {
+          "name": "security_terms",
+          "cap": 5,
+          "weight": 0.60,
+          "terms": [
+            "vulnerability",
+            "exploit",
+            "attack",
+            "defense",
+            "mitigation",
+            "sandbox",
+            "isolation",
+            "fuzzing",
+            "static analysis",
+            "intrusion detection",
+            "malware",
+            "ransomware",
+            "access control",
+            "secure boot",
+            "CVE"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_group": "security_terms"},
+      "title_all_groups_bonus": 1.0,
+      "quota": null
+    },
+    {
+      "id": "privacy_mlsec",
+      "label": "隐私与机器学习安全",
+      "base": 3.5,
+      "cap": 8.0,
+      "score_weight": 0.20,
+      "term_groups": [
+        {
+          "name": "privacy_terms",
+          "cap": 3,
+          "weight": 0.9,
+          "terms": [
+            "differential privacy",
+            "federated learning",
+            "homomorphic encryption",
+            "secure multi-party computation",
+            "secure aggregation",
+            "trusted execution environment",
+            "TEE",
+            "zero-knowledge",
+            "anonymization",
+            "data privacy",
+            "private set intersection",
+            "privacy-preserving"
+          ]
+        },
+        {
+          "name": "mlsec_terms",
+          "cap": 5,
+          "weight": 0.65,
+          "terms": [
+            "adversarial example",
+            "adversarial attack",
+            "backdoor",
+            "data poisoning",
+            "model extraction",
+            "membership inference",
+            "model inversion",
+            "jailbreak",
+            "prompt injection",
+            "watermark",
+            "robustness",
+            "certified defense",
+            "unlearning",
+            "privacy leakage"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_any": true},
+      "title_all_groups_bonus": 0.75,
+      "quota": 4
+    }
+  ],
+
+  "authors": {
+    "priority": []
+  },
+
+  "institutions": [
+    "Google",
+    "Microsoft Research",
+    "Meta",
+    "Stanford",
+    "UC Berkeley",
+    "CMU",
+    "MIT",
+    "ETH Zurich",
+    "Tsinghua"
+  ],
+
+  "research_profile": {
+    "primary_interests": [
+      "systems and network security",
+      "privacy-preserving machine learning",
+      "adversarial machine learning",
+      "LLM security and prompt injection"
+    ],
+    "secondary_interests": [
+      "fuzzing and vulnerability discovery",
+      "differential privacy",
+      "federated learning security",
+      "model watermarking and provenance"
+    ],
+    "current_projects": [
+      "描述你当前的研究项目,系统会优先推荐相关论文"
+    ],
+    "technical_stack": [
+      "Python",
+      "PyTorch"
+    ]
+  },
+
+  "scoring_weights": {
+    "keyword_match": 0.20,
+    "author_match": 0.10,
+    "institution_match": 0.05,
+    "recency": 0.05,
+    "research_relevance": 0.15
+  },
+
+  "min_score": 4.2,
+  "max_papers_per_day": 18,
+  "request_delay_seconds": 3.0,
+  "topic_priority": ["systems_security", "privacy_mlsec"],
+  "require_detailed_analysis": true,
+  "update_time": "08:00",
+
+  "output_preferences": {
+    "include_metrics": true,
+    "highlight_sota": true,
+    "extract_numbers": true,
+    "show_code_links": true,
+    "show_related_work": true
+  },
+
+  "notification": {
+    "feishu_group": "YOUR_GROUP_CHAT_ID",
+    "urgent_threshold": 8.5,
+    "digest_mode": "daily"
+  }
+}

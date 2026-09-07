@@ -63,10 +63,11 @@ def atomic_write(path, content, *, binary=False):
 
 
 def resolve_config_path(config_path):
-    """Resolve config paths relative to this script so cron cwd does not matter."""
+    """Resolve config paths relative to the repository root so cron cwd does not matter."""
     if os.path.isabs(config_path):
         return config_path
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), config_path)
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(repo_root, config_path)
 
 
 class SingleRunLock:
@@ -161,6 +162,11 @@ class ArxivMonitorPhD:
         self.pushed_ids_file = os.path.join(self.base_dir, "arxiv_pushed_ids.json")
         self.pushed_ids = self._load_pushed_ids()
 
+        self.topics = self._load_topics()
+        self._topics_by_id = {topic['id']: topic for topic in self.topics}
+        self.topic_labels = {topic['id']: topic['label'] for topic in self.topics}
+        self._topic_order = self._resolve_topic_order()
+
     @staticmethod
     def _read_bounded_response(response, max_bytes=MAX_FEED_BYTES):
         announced = response.headers.get("content-length")
@@ -240,9 +246,13 @@ class ArxivMonitorPhD:
 
     def _save_selected_papers(self, papers):
         papers_to_expand = self._artifact_path('papers_to_expand.json')
+        payload = {
+            'papers': papers,
+            'topic_labels': self.topic_labels,
+        }
         atomic_write(
             papers_to_expand,
-            json.dumps(papers, ensure_ascii=False, indent=2, default=str) + "\n",
+            json.dumps(payload, ensure_ascii=False, indent=2, default=str) + "\n",
         )
         print(f"已保存 {len(papers)} 篇待扩展论文到 {papers_to_expand}")
 
@@ -619,38 +629,218 @@ class ArxivMonitorPhD:
         
         return selected
 
+    def _load_topics(self):
+        """Load scoring topics from config, converting legacy keyword lists if needed."""
+        raw_topics = self.config.get('topics')
+        if raw_topics is None:
+            topics = [
+                self._normalize_topic(raw)
+                for raw in self._legacy_topics_from_keywords()
+            ]
+            # Legacy configs tolerate missing keyword lists; skip such topics.
+            topics = [
+                topic for topic in topics
+                if all(group['terms'] for group in topic['term_groups'])
+            ]
+        else:
+            if not isinstance(raw_topics, list) or not raw_topics:
+                raise ValueError("topics must be a non-empty array")
+            topics = [self._normalize_topic(raw) for raw in raw_topics]
+            for topic in topics:
+                for group in topic['term_groups']:
+                    if not group['terms']:
+                        raise ValueError(
+                            f"topic {topic['id']} group {group['name']} must list terms"
+                        )
+        ids = [topic['id'] for topic in topics]
+        if len(set(ids)) != len(ids):
+            raise ValueError("topic ids must be unique")
+        return topics
+
+    def _legacy_topics_from_keywords(self):
+        """Convert pre-topics keyword lists into equivalent topic definitions."""
+        keywords = self.config.get('keywords', {})
+        weights = self.config.get('scoring_weights', {})
+        return [
+            {
+                'id': 'ai_infra',
+                'label': 'AI Infra',
+                'base': 4.0,
+                'cap': 8.0,
+                'score_weight': weights.get('ai_infra_match', 0.35),
+                'term_groups': [
+                    {
+                        'name': 'ai_terms',
+                        'terms': keywords.get('ai_infra_ai_terms', []),
+                        'cap': 3,
+                        'weight': 0.75,
+                    },
+                    {
+                        'name': 'system_terms',
+                        'terms': keywords.get('ai_infra_system_terms', []),
+                        'cap': 5,
+                        'weight': 0.60,
+                    },
+                ],
+                'require_all_groups': True,
+                'strong_rule': {'title_group': 'system_terms'},
+                'title_all_groups_bonus': 1.0,
+                'quota': None,
+            },
+            {
+                'id': 'hpc_systems',
+                'label': 'HPC Systems',
+                'base': 3.5,
+                'cap': 8.0,
+                'score_weight': weights.get('hpc_match', 0.20),
+                'term_groups': [
+                    {
+                        'name': 'anchors',
+                        'terms': keywords.get('hpc_systems_anchor', []),
+                        'cap': 3,
+                        'weight': 0.9,
+                    },
+                    {
+                        'name': 'mechanisms',
+                        'terms': keywords.get('hpc_systems_mechanisms', []),
+                        'cap': 5,
+                        'weight': 0.65,
+                    },
+                ],
+                'require_all_groups': True,
+                'strong_rule': {'title_any': True},
+                'title_all_groups_bonus': 0.75,
+                'quota': {'cap': 4, 'divisor': 4},
+            },
+            {
+                'id': 'ai4sci_infra',
+                'label': 'AI4Sci Infra',
+                'base': 3.0,
+                'cap': 8.0,
+                'score_weight': weights.get('ai4sci_match', 0.10),
+                'term_groups': [
+                    {
+                        'name': 'domains',
+                        'terms': keywords.get('ai4sci_domains', []),
+                        'cap': 3,
+                        'weight': 1.0,
+                    },
+                    {
+                        'name': 'infra',
+                        'terms': keywords.get('ai4sci_infra', []),
+                        'cap': 4,
+                        'weight': 0.75,
+                    },
+                ],
+                'require_all_groups': True,
+                'strong_rule': None,
+                'title_all_groups_bonus': 0.0,
+                'quota': {'cap': 3, 'divisor': 6},
+            },
+        ]
+
+    @staticmethod
+    def _normalize_topic(raw):
+        """Normalize one topic definition and fill in defaults."""
+        if not isinstance(raw, dict):
+            raise ValueError("each topic must be an object")
+        topic_id = str(raw.get('id') or '').strip()
+        if not re.fullmatch(r'[a-z0-9_]+', topic_id):
+            raise ValueError(f"invalid topic id: {topic_id!r}")
+
+        groups = []
+        group_names = set()
+        for group in raw.get('term_groups') or []:
+            if not isinstance(group, dict):
+                raise ValueError(f"topic {topic_id} term groups must be objects")
+            name = str(group.get('name') or '').strip()
+            if not name or name in group_names:
+                raise ValueError(f"topic {topic_id} has duplicate or empty group name")
+            group_names.add(name)
+            terms = [
+                str(term) for term in group.get('terms') or [] if str(term).strip()
+            ]
+            groups.append({
+                'name': name,
+                'terms': terms,
+                'cap': int(group.get('cap', 3)),
+                'weight': float(group.get('weight', 1.0)),
+            })
+        if not groups:
+            raise ValueError(f"topic {topic_id} must define at least one term group")
+
+        strong_rule = raw.get('strong_rule')
+        if strong_rule is not None:
+            if not isinstance(strong_rule, dict):
+                raise ValueError(f"topic {topic_id} strong_rule must be an object")
+            title_group = strong_rule.get('title_group')
+            if title_group is not None and title_group not in group_names:
+                raise ValueError(
+                    f"topic {topic_id} strong_rule references unknown group {title_group!r}"
+                )
+
+        quota = raw.get('quota')
+        if quota is None:
+            normalized_quota = None
+        elif isinstance(quota, dict):
+            normalized_quota = {
+                'cap': int(quota['cap']),
+                'divisor': max(1, int(quota.get('divisor', 1))),
+            }
+        else:
+            normalized_quota = {'cap': int(quota), 'divisor': 1}
+
+        return {
+            'id': topic_id,
+            'label': str(raw.get('label') or topic_id),
+            'base': float(raw.get('base', 0.0)),
+            'cap': float(raw.get('cap', 8.0)),
+            'score_weight': float(raw.get('score_weight', 0.2)),
+            'term_groups': groups,
+            'require_all_groups': bool(raw.get('require_all_groups', True)),
+            'strong_rule': strong_rule,
+            'title_all_groups_bonus': float(raw.get('title_all_groups_bonus', 0.0)),
+            'quota': normalized_quota,
+        }
+
+    def _resolve_topic_order(self):
+        """Topic priority defaults to the config order of the topics array."""
+        configured = self.config.get('topic_priority')
+        ids = [topic['id'] for topic in self.topics]
+        if not configured:
+            return ids
+        order = [topic_id for topic_id in configured if topic_id in self._topics_by_id]
+        order.extend(topic_id for topic_id in ids if topic_id not in order)
+        return order
+
+    def _is_topic_paper(self, paper, topic_id):
+        """Return whether the paper scores above zero for the given topic."""
+        details = paper.get('score_details', {}).get(topic_id, {})
+        return bool(details.get('score', 0) > 0)
+
     def _is_ai4sci_paper(self, paper):
         """Return whether science-domain and infrastructure signals co-occur."""
-        details = paper.get('score_details', {}).get('ai4sci', {})
-        return bool(details.get('domains') and details.get('infra'))
+        return self._is_topic_paper(paper, 'ai4sci_infra')
 
     def _is_ai_infra_paper(self, paper):
         """Return whether AI/model and systems signals co-occur."""
-        details = paper.get('score_details', {}).get('ai_infra', {})
-        return bool(details.get('score', 0) > 0 and details.get('strong_match'))
+        return self._is_topic_paper(paper, 'ai_infra')
 
     def _is_hpc_paper(self, paper):
         """Return whether standalone HPC anchors and systems mechanisms co-occur."""
-        details = paper.get('score_details', {}).get('hpc', {})
-        return bool(details.get('score', 0) > 0 and details.get('strong_match'))
+        return self._is_topic_paper(paper, 'hpc_systems')
 
     def _paper_primary_topic(self, paper):
-        """Assign the first matching configured topic; AI Infra is first by default."""
-        topics = {
-            'ai_infra': self._is_ai_infra_paper(paper),
-            'hpc_systems': self._is_hpc_paper(paper),
-            'ai4sci_infra': self._is_ai4sci_paper(paper),
-        }
-        for topic in self.config.get('topic_priority', ['ai_infra', 'hpc_systems', 'ai4sci_infra']):
-            if topics.get(topic):
-                return topic
+        """Assign the first matching configured topic in priority order."""
+        for topic_id in self._topic_order:
+            if self._is_topic_paper(paper, topic_id):
+                return topic_id
         return 'other'
 
     def _topic_priority_rank(self, paper):
-        order = self.config.get('topic_priority', ['ai_infra', 'hpc_systems', 'ai4sci_infra'])
         topic = self._paper_primary_topic(paper)
         try:
-            return len(order) - order.index(topic)
+            return len(self._topic_order) - self._topic_order.index(topic)
         except ValueError:
             return 0
 
@@ -674,13 +864,28 @@ class ArxivMonitorPhD:
         def paper_base_id(paper):
             return self._base_arxiv_id(self._paper_arxiv_id(paper))
 
-        grouped = {
-            topic: [paper for paper in ordered if self._paper_primary_topic(paper) == topic]
-            for topic in ('ai_infra', 'hpc_systems', 'ai4sci_infra', 'other')
-        }
-        hpc_quota = min(len(grouped['hpc_systems']), min(4, max(1, max_papers // 4)))
-        ai4sci_quota = min(len(grouped['ai4sci_infra']), min(3, max(1, max_papers // 6)))
-        ai_limit = max(0, max_papers - hpc_quota - ai4sci_quota)
+        priority_topics = [self._topics_by_id[tid] for tid in self._topic_order]
+        grouped = {topic['id']: [] for topic in priority_topics}
+        grouped['other'] = []
+        for paper in ordered:
+            primary = self._paper_primary_topic(paper)
+            grouped[primary if primary in grouped else 'other'].append(paper)
+
+        def effective_quota(topic):
+            quota = topic.get('quota')
+            if quota is None:
+                return None
+            return min(
+                len(grouped[topic['id']]),
+                min(quota['cap'], max(1, max_papers // quota['divisor'])),
+            )
+
+        reserved = sum(
+            effective_quota(topic) or 0
+            for topic in priority_topics
+            if topic.get('quota') is not None
+        )
+        elastic_pool = max(0, max_papers - reserved)
 
         def add_papers(candidates, limit):
             for paper in candidates:
@@ -694,9 +899,14 @@ class ArxivMonitorPhD:
                 selected_ids.add(base_id)
                 limit -= 1
 
-        add_papers(grouped['ai_infra'], ai_limit)
-        add_papers(grouped['hpc_systems'], hpc_quota)
-        add_papers(grouped['ai4sci_infra'], ai4sci_quota)
+        for topic in priority_topics:
+            quota = effective_quota(topic)
+            if quota is None:
+                before = len(selected)
+                add_papers(grouped[topic['id']], elastic_pool)
+                elastic_pool -= len(selected) - before
+            else:
+                add_papers(grouped[topic['id']], quota)
         if len(selected) < max_papers:
             add_papers(ordered, max_papers - len(selected))
         return selected
@@ -730,14 +940,11 @@ class ArxivMonitorPhD:
         
         details['keywords'] = {'score': keyword_score, 'matched': matched_keywords[:5]}
 
-        ai_infra_score, ai_infra_details = self._calculate_ai_infra_match(paper)
-        details['ai_infra'] = {'score': ai_infra_score, **ai_infra_details}
-
-        ai4sci_score, ai4sci_details = self._calculate_ai4sci_infra_match(paper)
-        details['ai4sci'] = {'score': ai4sci_score, **ai4sci_details}
-
-        hpc_score, hpc_details = self._calculate_hpc_systems_match(paper)
-        details['hpc'] = {'score': hpc_score, **hpc_details}
+        topic_weighted_scores = []
+        for topic in self.topics:
+            topic_score, topic_details = self._calculate_topic_match(paper, topic)
+            details[topic['id']] = {'score': topic_score, **topic_details}
+            topic_weighted_scores.append(topic_score * topic['score_weight'])
         
         # 2. 作者匹配
         author_score = 0.0
@@ -779,62 +986,74 @@ class ArxivMonitorPhD:
         # 应用权重
         weights = self.config.get('scoring_weights', {
             'keyword_match': 0.20,
-            'ai_infra_match': 0.35,
-            'ai4sci_match': 0.10,
-            'hpc_match': 0.20,
             'author_match': 0.10,
             'institution_match': 0.05,
             'recency': 0.05,
             'research_relevance': 0.15
         })
-        
+
         score = (
             keyword_score * weights.get('keyword_match', 0.20) +
-            ai_infra_score * weights.get('ai_infra_match', 0.35) +
-            ai4sci_score * weights.get('ai4sci_match', 0.10) +
-            hpc_score * weights.get('hpc_match', 0.20) +
             author_score * weights.get('author_match', 0.10) +
             institution_score * weights.get('institution_match', 0.05) +
             recency_score * weights.get('recency', 0.05) +
-            research_score * weights.get('research_relevance', 0.15)
+            research_score * weights.get('research_relevance', 0.15) +
+            sum(topic_weighted_scores)
         )
-        
+
         return min(score, 10.0), details
 
-    def _calculate_ai_infra_match(self, paper):
-        """Score papers that combine an AI/model anchor with a systems concern."""
-        keywords = self.config.get('keywords', {})
-        ai_terms = keywords.get('ai_infra_ai_terms', [])
-        system_terms = keywords.get('ai_infra_system_terms', [])
+    def _calculate_topic_match(self, paper, topic):
+        """Score a paper against one configured topic definition."""
         title = paper['title'].lower()
         text = (paper['title'] + ' ' + paper['abstract']).lower()
 
-        matched_ai = [term for term in ai_terms if self._term_in_text(term, text)]
-        matched_system = [term for term in system_terms if self._term_in_text(term, text)]
-        title_ai = [term for term in matched_ai if self._term_in_text(term, title)]
-        title_system = [term for term in matched_system if self._term_in_text(term, title)]
-
-        if matched_ai and matched_system:
-            candidate_score = (
-                4.0
-                + min(len(matched_ai), 3) * 0.75
-                + min(len(matched_system), 5) * 0.60
+        matched = {}
+        title_match = {}
+        for group in topic['term_groups']:
+            hits = [term for term in group['terms'] if self._term_in_text(term, text)]
+            matched[group['name']] = hits
+            title_match[group['name']] = any(
+                self._term_in_text(term, title) for term in hits
             )
-            if title_ai and title_system:
-                candidate_score += 1.0
+
+        group_names = [group['name'] for group in topic['term_groups']]
+        if topic['require_all_groups']:
+            eligible = all(matched[name] for name in group_names)
+        else:
+            eligible = any(matched[name] for name in group_names)
+
+        if eligible:
+            candidate_score = topic['base'] + sum(
+                min(len(matched[group['name']]), group['cap']) * group['weight']
+                for group in topic['term_groups']
+            )
+            if topic['title_all_groups_bonus'] and all(title_match.values()):
+                candidate_score += topic['title_all_groups_bonus']
         else:
             candidate_score = 0.0
 
-        strong_match = bool(matched_ai and title_system)
+        strong_rule = topic.get('strong_rule')
+        if strong_rule is None:
+            strong_match = eligible
+        elif strong_rule.get('title_group') is not None:
+            strong_match = eligible and title_match.get(strong_rule['title_group'], False)
+        else:  # {"title_any": true}
+            strong_match = eligible and any(title_match.values())
+
         score = candidate_score if strong_match else 0.0
 
-        return min(score, 8.0), {
-            'ai_terms': matched_ai[:5],
-            'system_terms': matched_system[:6],
-            'title_ai_match': bool(title_ai),
-            'title_system_match': bool(title_system),
-            'strong_match': strong_match,
-        }
+        details = {name: hits[:6] for name, hits in matched.items()}
+        details['title_match'] = title_match
+        details['strong_match'] = strong_match
+        return min(score, topic['cap']), details
+
+    def _calculate_ai_infra_match(self, paper):
+        """Compatibility wrapper: score the legacy ai_infra topic if configured."""
+        topic = self._topics_by_id.get('ai_infra')
+        if topic is None:
+            return 0.0, {}
+        return self._calculate_topic_match(paper, topic)
 
     @staticmethod
     def _term_in_text(term, text):
@@ -846,75 +1065,18 @@ class ArxivMonitorPhD:
         return re.search(pattern, str(text).lower()) is not None
 
     def _calculate_ai4sci_infra_match(self, paper):
-        """Boost papers that combine science domains with infra/system concerns."""
-        keywords = self.config.get('keywords', {})
-        domains = keywords.get('ai4sci_domains', [])
-        infra_terms = keywords.get('ai4sci_infra', [])
-        text = (paper['title'] + ' ' + paper['abstract']).lower()
-
-        matched_domains = [
-            term for term in domains
-            if self._term_in_text(term, text)
-        ]
-        matched_infra = [
-            term for term in infra_terms
-            if self._term_in_text(term, text)
-        ]
-
-        if matched_domains and matched_infra:
-            score = 3.0 + min(len(matched_domains), 3) * 1.0 + min(len(matched_infra), 4) * 0.75
-        else:
-            score = 0.0
-
-        return min(score, 8.0), {
-            'domains': matched_domains[:5],
-            'infra': matched_infra[:5]
-        }
+        """Compatibility wrapper: score the legacy ai4sci_infra topic if configured."""
+        topic = self._topics_by_id.get('ai4sci_infra')
+        if topic is None:
+            return 0.0, {}
+        return self._calculate_topic_match(paper, topic)
 
     def _calculate_hpc_systems_match(self, paper):
-        """Score standalone HPC systems papers without requiring an AI anchor."""
-        keywords = self.config.get('keywords', {})
-        anchors = keywords.get('hpc_systems_anchor', [])
-        mechanisms = keywords.get('hpc_systems_mechanisms', [])
-        title = paper['title'].lower()
-        text = (paper['title'] + ' ' + paper['abstract']).lower()
-
-        matched_anchors = [
-            term for term in anchors if self._term_in_text(term, text)
-        ]
-        matched_mechanisms = [
-            term for term in mechanisms if self._term_in_text(term, text)
-        ]
-        title_anchors = [
-            term for term in matched_anchors if self._term_in_text(term, title)
-        ]
-        title_mechanisms = [
-            term for term in matched_mechanisms if self._term_in_text(term, title)
-        ]
-
-        strong_match = bool(
-            matched_anchors
-            and matched_mechanisms
-            and (title_anchors or title_mechanisms)
-        )
-        if strong_match:
-            score = (
-                3.5
-                + min(len(matched_anchors), 3) * 0.9
-                + min(len(matched_mechanisms), 5) * 0.65
-            )
-            if title_anchors and title_mechanisms:
-                score += 0.75
-        else:
-            score = 0.0
-
-        return min(score, 8.0), {
-            'anchors': matched_anchors[:5],
-            'mechanisms': matched_mechanisms[:6],
-            'title_anchor_match': bool(title_anchors),
-            'title_mechanism_match': bool(title_mechanisms),
-            'strong_match': strong_match,
-        }
+        """Compatibility wrapper: score the legacy hpc_systems topic if configured."""
+        topic = self._topics_by_id.get('hpc_systems')
+        if topic is None:
+            return 0.0, {}
+        return self._calculate_topic_match(paper, topic)
     
     def _calculate_research_relevance(self, paper):
         """计算与研究方向的相关度"""
@@ -952,13 +1114,36 @@ class ArxivMonitorPhD:
             except Exception as e:
                 print(f"加载扩展摘要失败: {e}")
         
-        ai_infra_count = sum(1 for paper in papers if self._is_ai_infra_paper(paper))
-        hpc_count = sum(1 for paper in papers if self._is_hpc_paper(paper))
-        ai4sci_count = sum(1 for paper in papers if self._is_ai4sci_paper(paper))
+        ordered_topics = [self._topics_by_id[tid] for tid in self._topic_order]
+        topic_counts = {
+            topic['id']: sum(
+                1 for paper in papers if self._is_topic_paper(paper, topic['id'])
+            )
+            for topic in ordered_topics
+        }
+        topic_labels = [topic['label'] for topic in ordered_topics]
 
-        report = f"""# Daily arXiv Report — AI Infra / HPC Systems / AI4Sci Infra - {date_str}
+        def priority_arrow(labels):
+            parts = []
+            for index, label in enumerate(labels):
+                if index == 0:
+                    parts.append(f"{label}（首要）")
+                elif index == 1:
+                    parts.append(f"{label}（次级）")
+                else:
+                    parts.append(label)
+            return ' → '.join(parts)
 
-> **🎓 研究方向**: AI Infrastructure（首要）→ HPC Systems（次级）→ AI4Sci Infrastructure
+        title_topics = ' / '.join(topic_labels) if topic_labels else 'Custom Topics'
+        research_line = priority_arrow(topic_labels) if topic_labels else '未配置主题'
+        overview_topic_rows = ''.join(
+            f"| {topic['label']} 命中 | {topic_counts[topic['id']]} |\n"
+            for topic in ordered_topics
+        )
+
+        report = f"""# Daily arXiv Report — {title_topics} - {date_str}
+
+> **🎓 研究方向**: {research_line}
 > **🔧 监控领域**: {', '.join(self.config['categories'])}  
 > **📊 论文总数**: {len(self.papers)}  
 > **⭐ 智能推荐**: {len(papers)}  
@@ -972,10 +1157,7 @@ class ArxivMonitorPhD:
 |-----|------|
 | 总论文数 | {len(self.papers)} |
 | 推荐论文 | {len(papers)} |
-| AI Infra 命中 | {ai_infra_count} |
-| HPC Systems 命中 | {hpc_count} |
-| AI4Sci Infra 命中 | {ai4sci_count} |
-| 平均评分 | {sum(p['relevance_score'] for p in papers) / len(papers):.1f}/10 |
+{overview_topic_rows}| 平均评分 | {sum(p['relevance_score'] for p in papers) / len(papers):.1f}/10 |
 | 有代码的论文 | {sum(1 for p in papers if p.get('code_url'))} |
 | 包含性能指标 | {sum(1 for p in papers if p.get('metrics'))} |
 
@@ -1010,24 +1192,23 @@ class ArxivMonitorPhD:
                 parts = []
                 if score_details.get('keywords', {}).get('score', 0) > 0:
                     parts.append(f"关键词{score_details['keywords']['score']:.1f}")
-                if score_details.get('ai_infra', {}).get('score', 0) > 0:
-                    parts.append(f"AI Infra{score_details['ai_infra']['score']:.1f}")
-                if score_details.get('ai4sci', {}).get('score', 0) > 0:
-                    parts.append(f"AI4Sci{score_details['ai4sci']['score']:.1f}")
-                if score_details.get('hpc', {}).get('score', 0) > 0:
-                    parts.append(f"HPC{score_details['hpc']['score']:.1f}")
+                for topic in self.topics:
+                    topic_score = score_details.get(topic['id'], {}).get('score', 0)
+                    if topic_score > 0:
+                        parts.append(f"{topic['label']}{topic_score:.1f}")
                 if score_details.get('authors', {}).get('score', 0) > 0:
                     parts.append(f"作者{score_details['authors']['score']:.1f}")
                 if score_details.get('research_relevance', {}).get('score', 0) > 0:
                     parts.append(f"研究相关{score_details['research_relevance']['score']:.1f}")
                 report += " + ".join(parts)
             
+            primary_topic = paper.get('primary_topic', self._paper_primary_topic(paper))
             report += f"""  
 **✍️ 作者**: {authors_str}  
 **🔗 arXiv**: [{arxiv_id}]({paper['url']})  
 **📅 提交**: {paper['submitted_date'].strftime("%Y-%m-%d")}  
 **🏷️ 分类**: {', '.join(paper['categories'][:3])}
-**🎯 首要主题**: {paper.get('primary_topic', self._paper_primary_topic(paper))}
+**🎯 首要主题**: {self.topic_labels.get(primary_topic, primary_topic)}
 """
             
             # 代码链接
@@ -1054,26 +1235,18 @@ class ArxivMonitorPhD:
                 matched = score_details['keywords']['matched'][:3]
                 report += f"**🔑 匹配关键词**: {', '.join(matched)}  \n"
 
-            if score_details.get('ai_infra', {}).get('ai_terms'):
-                ai_terms = ', '.join(score_details['ai_infra']['ai_terms'][:3])
-                system_terms = ', '.join(score_details['ai_infra'].get('system_terms', [])[:4])
-                report += f"**🧱 AI Infra**: {ai_terms} × {system_terms}  \n"
-
-            if score_details.get('ai4sci', {}).get('domains'):
-                domains = ', '.join(score_details['ai4sci']['domains'][:3])
-                infra = ', '.join(score_details['ai4sci'].get('infra', [])[:3])
-                report += f"**🧪 AI4Sci Infra**: {domains}"
-                if infra:
-                    report += f" × {infra}"
-                report += "  \n"
-
-            if score_details.get('hpc', {}).get('anchors'):
-                anchors = ', '.join(score_details['hpc']['anchors'][:3])
-                mechanisms = ', '.join(score_details['hpc'].get('mechanisms', [])[:4])
-                report += f"**🖥️ HPC Systems**: {anchors}"
-                if mechanisms:
-                    report += f" × {mechanisms}"
-                report += "  \n"
+            for topic in self.topics:
+                topic_details = score_details.get(topic['id'], {})
+                group_hits = [
+                    topic_details.get(group['name']) or []
+                    for group in topic['term_groups']
+                ]
+                if not any(group_hits):
+                    continue
+                rendered_hits = ' × '.join(
+                    ', '.join(hits[:3]) for hits in group_hits if hits
+                )
+                report += f"**🏷️ {topic['label']}**: {rendered_hits}  \n"
             
             # 使用扩展摘要或格式化的原始摘要
             intro = expanded_intros.get(paper['url'], '') or self._format_abstract(paper['abstract'])
@@ -1106,7 +1279,7 @@ class ArxivMonitorPhD:
 ---
 
 **⏰ 下次更新**: {(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M")}  
-**🎯 监控范围与顺序**: AI训练/推理系统（首要）→ HPC并行运行时、通信、存储与调度（次级）→ AI4Sci Infra
+**🎯 监控范围与顺序**: {research_line}
 """
         
         return report

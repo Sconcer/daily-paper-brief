@@ -1,0 +1,257 @@
+{
+  "name": "arXiv NLP / LLM 监控 - 博士生版",
+  "description": "自然语言处理与大语言模型算法方向预设：语言模型与对齐、推理与评测",
+
+  "categories": [
+    "cs.CL",
+    "cs.LG",
+    "cs.AI",
+    "cs.NE",
+    "cs.IR",
+    "stat.ML"
+  ],
+
+  "keywords": {
+    "must_include": [
+      "language model",
+      "large language model",
+      "LLM",
+      "natural language processing",
+      "NLP",
+      "pretraining",
+      "pre-training",
+      "fine-tuning",
+      "instruction tuning",
+      "alignment",
+      "RLHF",
+      "DPO",
+      "preference optimization",
+      "reward model",
+      "reasoning",
+      "chain-of-thought",
+      "benchmark",
+      "evaluation",
+      "transformer",
+      "attention",
+      "tokenization",
+      "embedding",
+      "retrieval-augmented",
+      "RAG",
+      "prompting",
+      "in-context learning",
+      "machine translation",
+      "question answering",
+      "summarization",
+      "dialogue",
+      "agent",
+      "tool use",
+      "multilingual",
+      "long context",
+      "quantization",
+      "distillation",
+      "mixture of experts",
+      "MoE",
+      "code generation",
+      "hallucination",
+      "interpretability",
+      "world model",
+      "test-time compute"
+    ],
+    "exclude": [
+      "medical imaging",
+      "healthcare diagnosis",
+      "clinical trial"
+    ]
+  },
+
+  "topics": [
+    {
+      "id": "llm_alignment",
+      "label": "语言模型与对齐",
+      "base": 4.0,
+      "cap": 8.0,
+      "score_weight": 0.35,
+      "term_groups": [
+        {
+          "name": "model_terms",
+          "cap": 3,
+          "weight": 0.75,
+          "terms": [
+            "large language model",
+            "large language models",
+            "language model",
+            "language models",
+            "LLM",
+            "LLMs",
+            "foundation model",
+            "transformer",
+            "pretraining",
+            "pre-training",
+            "instruction tuning",
+            "supervised fine-tuning",
+            "SFT",
+            "parameter-efficient",
+            "LoRA",
+            "multilingual model",
+            "diffusion language model"
+          ]
+        },
+        {
+          "name": "alignment_terms",
+          "cap": 5,
+          "weight": 0.60,
+          "terms": [
+            "alignment",
+            "RLHF",
+            "RLAIF",
+            "DPO",
+            "preference optimization",
+            "preference learning",
+            "reward model",
+            "human feedback",
+            "safety",
+            "jailbreak",
+            "guardrail",
+            "hallucination",
+            "honesty",
+            "value alignment",
+            "constitutional AI",
+            "red teaming",
+            "fine-tuning"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_group": "alignment_terms"},
+      "title_all_groups_bonus": 1.0,
+      "quota": null
+    },
+    {
+      "id": "reasoning_eval",
+      "label": "推理与评测",
+      "base": 3.5,
+      "cap": 8.0,
+      "score_weight": 0.20,
+      "term_groups": [
+        {
+          "name": "reasoning_terms",
+          "cap": 3,
+          "weight": 0.9,
+          "terms": [
+            "reasoning",
+            "chain-of-thought",
+            "chain of thought",
+            "CoT",
+            "planning",
+            "tool use",
+            "agent",
+            "multi-step reasoning",
+            "math reasoning",
+            "mathematical reasoning",
+            "logical reasoning",
+            "code generation",
+            "self-consistency",
+            "tree of thoughts",
+            "test-time compute",
+            "test-time scaling"
+          ]
+        },
+        {
+          "name": "eval_terms",
+          "cap": 5,
+          "weight": 0.65,
+          "terms": [
+            "benchmark",
+            "evaluation",
+            "leaderboard",
+            "MMLU",
+            "GSM8K",
+            "HumanEval",
+            "MATH",
+            "BIG-bench",
+            "SWE-bench",
+            "agent benchmark",
+            "evaluation metric",
+            "human evaluation",
+            "LLM-as-a-judge",
+            "judge",
+            "dataset"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_any": true},
+      "title_all_groups_bonus": 0.75,
+      "quota": 4
+    }
+  ],
+
+  "authors": {
+    "priority": []
+  },
+
+  "institutions": [
+    "OpenAI",
+    "Google DeepMind",
+    "Meta AI",
+    "Anthropic",
+    "Microsoft Research",
+    "Stanford",
+    "UC Berkeley",
+    "CMU",
+    "Tsinghua",
+    "Peking University"
+  ],
+
+  "research_profile": {
+    "primary_interests": [
+      "large language model pretraining and post-training",
+      "alignment and preference optimization",
+      "LLM reasoning and agents",
+      "evaluation benchmarks and LLM-as-a-judge"
+    ],
+    "secondary_interests": [
+      "retrieval-augmented generation",
+      "long-context modeling",
+      "multilingual language models",
+      "model interpretability"
+    ],
+    "current_projects": [
+      "描述你当前的研究项目,系统会优先推荐相关论文"
+    ],
+    "technical_stack": [
+      "PyTorch",
+      "Hugging Face",
+      "vLLM"
+    ]
+  },
+
+  "scoring_weights": {
+    "keyword_match": 0.20,
+    "author_match": 0.10,
+    "institution_match": 0.05,
+    "recency": 0.05,
+    "research_relevance": 0.15
+  },
+
+  "min_score": 4.2,
+  "max_papers_per_day": 18,
+  "request_delay_seconds": 3.0,
+  "topic_priority": ["llm_alignment", "reasoning_eval"],
+  "require_detailed_analysis": true,
+  "update_time": "08:00",
+
+  "output_preferences": {
+    "include_metrics": true,
+    "highlight_sota": true,
+    "extract_numbers": true,
+    "show_code_links": true,
+    "show_related_work": true
+  },
+
+  "notification": {
+    "feishu_group": "YOUR_GROUP_CHAT_ID",
+    "urgent_threshold": 8.5,
+    "digest_mode": "daily"
+  }
+}

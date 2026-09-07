@@ -1,0 +1,243 @@
+{
+  "name": "arXiv 视觉 / 机器人监控 - 博士生版",
+  "description": "计算机视觉与机器人方向预设：视觉基础模型与生成、机器人学习与控制",
+
+  "categories": [
+    "cs.CV",
+    "cs.RO",
+    "cs.LG",
+    "cs.AI",
+    "eess.IV"
+  ],
+
+  "keywords": {
+    "must_include": [
+      "image",
+      "video",
+      "vision",
+      "visual",
+      "segmentation",
+      "object detection",
+      "3D reconstruction",
+      "NeRF",
+      "gaussian splatting",
+      "point cloud",
+      "depth estimation",
+      "optical flow",
+      "multimodal",
+      "vision-language",
+      "VLM",
+      "diffusion model",
+      "generative model",
+      "foundation model",
+      "self-supervised",
+      "representation learning",
+      "robot",
+      "robotics",
+      "manipulation",
+      "grasping",
+      "locomotion",
+      "navigation",
+      "embodied",
+      "humanoid",
+      "sim2real",
+      "reinforcement learning",
+      "imitation learning",
+      "policy",
+      "motion planning",
+      "SLAM",
+      "world model",
+      "autonomous driving"
+    ],
+    "exclude": [
+      "medical imaging",
+      "healthcare diagnosis",
+      "clinical trial"
+    ]
+  },
+
+  "topics": [
+    {
+      "id": "vision_models",
+      "label": "视觉基础模型与生成",
+      "base": 4.0,
+      "cap": 8.0,
+      "score_weight": 0.35,
+      "term_groups": [
+        {
+          "name": "vision_terms",
+          "cap": 3,
+          "weight": 0.75,
+          "terms": [
+            "image",
+            "video",
+            "vision",
+            "visual",
+            "segmentation",
+            "object detection",
+            "3D reconstruction",
+            "NeRF",
+            "gaussian splatting",
+            "point cloud",
+            "depth estimation",
+            "optical flow",
+            "multimodal",
+            "vision-language",
+            "VLM"
+          ]
+        },
+        {
+          "name": "method_terms",
+          "cap": 5,
+          "weight": 0.60,
+          "terms": [
+            "foundation model",
+            "generative model",
+            "diffusion model",
+            "transformer",
+            "self-supervised",
+            "representation learning",
+            "pretraining",
+            "autoregressive",
+            "consistency model",
+            "flow matching",
+            "tokenizer",
+            "scaling",
+            "open-vocabulary",
+            "zero-shot"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_group": "method_terms"},
+      "title_all_groups_bonus": 1.0,
+      "quota": null
+    },
+    {
+      "id": "robotics_learning",
+      "label": "机器人学习与控制",
+      "base": 3.5,
+      "cap": 8.0,
+      "score_weight": 0.20,
+      "term_groups": [
+        {
+          "name": "robot_terms",
+          "cap": 3,
+          "weight": 0.9,
+          "terms": [
+            "robot",
+            "robotics",
+            "robotic",
+            "manipulation",
+            "grasping",
+            "locomotion",
+            "navigation",
+            "embodied",
+            "humanoid",
+            "quadruped",
+            "mobile robot",
+            "drone",
+            "autonomous driving",
+            "sim2real",
+            "sim-to-real"
+          ]
+        },
+        {
+          "name": "learning_terms",
+          "cap": 5,
+          "weight": 0.65,
+          "terms": [
+            "reinforcement learning",
+            "imitation learning",
+            "policy",
+            "control",
+            "planning",
+            "motion planning",
+            "MPC",
+            "trajectory",
+            "demonstration",
+            "teleoperation",
+            "world model",
+            "affordance",
+            "tactile",
+            "SLAM"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_any": true},
+      "title_all_groups_bonus": 0.75,
+      "quota": 4
+    }
+  ],
+
+  "authors": {
+    "priority": []
+  },
+
+  "institutions": [
+    "Google DeepMind",
+    "Meta AI",
+    "NVIDIA",
+    "OpenAI",
+    "Stanford",
+    "UC Berkeley",
+    "CMU",
+    "MIT",
+    "ETH Zurich",
+    "Tsinghua"
+  ],
+
+  "research_profile": {
+    "primary_interests": [
+      "vision foundation models",
+      "image and video generation",
+      "3D reconstruction and neural rendering",
+      "robot learning and manipulation",
+      "embodied AI"
+    ],
+    "secondary_interests": [
+      "vision-language models",
+      "world models for control",
+      "sim-to-real transfer",
+      "autonomous driving perception"
+    ],
+    "current_projects": [
+      "描述你当前的研究项目,系统会优先推荐相关论文"
+    ],
+    "technical_stack": [
+      "PyTorch",
+      "CUDA",
+      "Isaac Sim"
+    ]
+  },
+
+  "scoring_weights": {
+    "keyword_match": 0.20,
+    "author_match": 0.10,
+    "institution_match": 0.05,
+    "recency": 0.05,
+    "research_relevance": 0.15
+  },
+
+  "min_score": 4.2,
+  "max_papers_per_day": 18,
+  "request_delay_seconds": 3.0,
+  "topic_priority": ["vision_models", "robotics_learning"],
+  "require_detailed_analysis": true,
+  "update_time": "08:00",
+
+  "output_preferences": {
+    "include_metrics": true,
+    "highlight_sota": true,
+    "extract_numbers": true,
+    "show_code_links": true,
+    "show_related_work": true
+  },
+
+  "notification": {
+    "feishu_group": "YOUR_GROUP_CHAT_ID",
+    "urgent_threshold": 8.5,
+    "digest_mode": "daily"
+  }
+}

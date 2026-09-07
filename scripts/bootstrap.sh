@@ -24,8 +24,8 @@ export COPYFILE_DISABLE=1
 export PYTHONDONTWRITEBYTECODE=1
 
 if [ ! -f "$repo_root/arxiv-monitor-config-phd.json" ]; then
-  cp "$repo_root/arxiv-monitor-config-phd.example.json" "$repo_root/arxiv-monitor-config-phd.json"
-  echo "created local config: $repo_root/arxiv-monitor-config-phd.json"
+  "$python_bin" "$repo_root/scripts/setup_config.py" --profile ai-infra-hpc
+  echo "可运行 python3 scripts/setup_config.py --list 更换领域预设"
 fi
 
 for required_bin in pdftotext pdftoppm; do

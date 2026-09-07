@@ -1,14 +1,14 @@
 # Daily Paper Brief
 
-> 面向 AI 基础设施、HPC 系统与 AI4Sci 的证据优先论文监控与评审报告流水线。
+> 证据优先的 arXiv 论文监控与评审报告流水线——五个领域预设可选，也可完全自定义。
 
-简体中文 · [English](README.md)
+简体中文 · [English](README.md) · [项目网页](https://sconcer.github.io/daily-paper-brief/)
 
 Daily Paper Brief 将每日 arXiv 来源论文转成一份可追踪的研究报告：筛选论文、保存来源证据、组织结构化评审、执行确定性校验、生成离线 HTML，并以哈希幂等方式发送一次。
 
 Daily Paper Brief 是独立项目，与 arXiv 或 Cornell University 无隶属、授权或背书关系。
 
-> **发布状态：候选版本，等待公开 CI 复核。** 自有代码采用 Apache-2.0；`humanizer-zh` 保持 MIT。论文内容和运行时生成报告不自动获得代码许可证授权。详见[开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)。
+> **发布状态：源码已通过本地门禁和公开 CI，可供所有者最终审阅。** 自有代码采用 Apache-2.0；`humanizer-zh` 保持 MIT。论文内容和运行时生成报告不自动获得代码许可证授权。详见[开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)。
 
 ## 它解决什么问题
 
@@ -37,13 +37,16 @@ python3 -m unittest discover -s tests -v
 
 默认测试不会访问 arXiv 或飞书。
 
-### 2. 创建本地配置
+### 2. 选择预设或自定义
+
+列出内置选题预设，并安装一个为本地配置：
 
 ```bash
-cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
+python3 scripts/setup_config.py --list
+python3 scripts/setup_config.py --profile ai-infra-hpc
 ```
 
-检查分类、关键词、关注作者/机构、权重和每日论文上限。真实配置由 Git 忽略。
+`config/profiles/` 提供 5 个预设：`ai-infra-hpc`（AI 基础设施 / HPC 系统 / AI4Sci）、`nlp-llm`、`vision-robotics`、`security-privacy`、`science-computing`。需要自定义时，直接编辑生成的 `arxiv-monitor-config-phd.json`：分类、关键词、`topics` 数组（词组、strong 规则、配额）、关注作者/机构、评分权重与每日论文上限；完整字段布局见 `config/arxiv-monitor-config-phd.example.json`。真实配置由 Git 忽略；不带参数运行 `setup_config.py` 会打印字段说明。
 
 ### 3. 构建环境
 
@@ -72,10 +75,12 @@ cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 
 | 路径 | 用途 |
 |---|---|
-| `arxiv_monitor_phd.py` | API/RSS 抓取、评分、主题排序和每日去重 |
-| `arxiv_report_pipeline.py` | 资产下载、安全清洗、结构校验、图和 HTML 构建 |
-| `ai_writing_metrics.py` | 可复现描述量，不是作者身份分类器 |
-| `arxiv_send_html_to_feishu.py` | HTML/构建收据校验和按目标群幂等发送 |
+| `src/arxiv_monitor_phd.py` | API/RSS 抓取、评分、主题排序和每日去重 |
+| `src/arxiv_report_pipeline.py` | 资产下载、安全清洗、结构校验、图和 HTML 构建 |
+| `src/ai_writing_metrics.py` | 可复现描述量，不是作者身份分类器 |
+| `src/arxiv_send_html_to_feishu.py` | HTML/构建收据校验和按目标群幂等发送 |
+| `config/` | 示例监控配置与可选选题预设；真实本地配置留在仓库根且被 Git 忽略 |
+| `config/profiles/` | 5 个可选领域预设（`ai-infra-hpc`、`nlp-llm`、`vision-robotics`、`security-privacy`、`science-computing`） |
 | `cron/` | 可移植的提示词、政策和任务模板 |
 | `skills/` | Apache-2.0 学术风格基线和单独采用 MIT 的写作模式目录 |
 | `tests/` | 离线单测与显式触发的联网探针 |
@@ -86,13 +91,13 @@ cp arxiv-monitor-config-phd.example.json arxiv-monitor-config-phd.json
 运行一次监控：
 
 ```bash
-.venv/bin/python arxiv_monitor_phd.py
+.venv/bin/python src/arxiv_monitor_phd.py
 ```
 
 准备某天的论文资产：
 
 ```bash
-.venv/bin/python arxiv_report_pipeline.py prepare \
+.venv/bin/python src/arxiv_report_pipeline.py prepare \
   --input ./papers_to_expand.json \
   --date YYYY-MM-DD
 ```
@@ -151,6 +156,7 @@ python3 scripts/install_openclaw_cron.py --apply --acknowledge-local-agent-trust
 
 ## 文档
 
+- [Agent skill](SKILL.md)——仓库本身即一个可加载的 skill（克隆或软链到技能目录即可）
 - [开源风险评估](docs/OPEN_SOURCE_RISK_ASSESSMENT.md)
 - [命名决策](docs/NAME_DECISION.md)
 - [安全模型](docs/SECURITY.md)

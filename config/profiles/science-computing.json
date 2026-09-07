@@ -1,0 +1,240 @@
+{
+  "name": "arXiv 科学计算监控 - 博士生版",
+  "description": "科学计算方向预设：科学计算与数值方法、AI 驱动科学发现",
+
+  "categories": [
+    "physics.comp-ph",
+    "cs.CE",
+    "cs.NA",
+    "math.NA",
+    "cs.DC",
+    "stat.ML"
+  ],
+
+  "keywords": {
+    "must_include": [
+      "scientific computing",
+      "computational science",
+      "numerical method",
+      "finite element",
+      "finite volume",
+      "finite difference",
+      "PDE",
+      "ODE",
+      "solver",
+      "preconditioner",
+      "multigrid",
+      "discretization",
+      "mesh",
+      "Monte Carlo",
+      "sparse matrix",
+      "linear algebra",
+      "high performance computing",
+      "HPC",
+      "GPU",
+      "parallel",
+      "MPI",
+      "exascale",
+      "molecular dynamics",
+      "quantum chemistry",
+      "climate",
+      "weather",
+      "materials",
+      "protein",
+      "fluid dynamics",
+      "neural operator",
+      "surrogate model",
+      "physics-informed",
+      "PINN",
+      "differentiable simulation",
+      "scientific machine learning",
+      "graph neural network"
+    ],
+    "exclude": [
+      "medical imaging",
+      "healthcare diagnosis",
+      "clinical trial"
+    ]
+  },
+
+  "topics": [
+    {
+      "id": "scientific_computing",
+      "label": "科学计算与数值方法",
+      "base": 4.0,
+      "cap": 8.0,
+      "score_weight": 0.35,
+      "term_groups": [
+        {
+          "name": "numerical_terms",
+          "cap": 3,
+          "weight": 0.75,
+          "terms": [
+            "finite element",
+            "finite volume",
+            "finite difference",
+            "PDE",
+            "ODE",
+            "solver",
+            "preconditioner",
+            "multigrid",
+            "discretization",
+            "mesh",
+            "Monte Carlo",
+            "quadrature",
+            "spectral method",
+            "sparse matrix",
+            "linear algebra"
+          ]
+        },
+        {
+          "name": "computing_terms",
+          "cap": 5,
+          "weight": 0.60,
+          "terms": [
+            "high performance computing",
+            "HPC",
+            "GPU",
+            "parallel",
+            "distributed",
+            "MPI",
+            "OpenMP",
+            "supercomputer",
+            "accelerator",
+            "scalability",
+            "performance",
+            "exascale",
+            "cluster",
+            "throughput"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_group": "numerical_terms"},
+      "title_all_groups_bonus": 1.0,
+      "quota": null
+    },
+    {
+      "id": "ai_for_science",
+      "label": "AI 驱动科学发现",
+      "base": 3.5,
+      "cap": 8.0,
+      "score_weight": 0.20,
+      "term_groups": [
+        {
+          "name": "science_terms",
+          "cap": 3,
+          "weight": 0.9,
+          "terms": [
+            "molecular dynamics",
+            "quantum chemistry",
+            "climate",
+            "weather",
+            "materials",
+            "protein",
+            "drug discovery",
+            "genomics",
+            "astrophysics",
+            "fluid dynamics",
+            "plasma",
+            "seismic",
+            "computational biology",
+            "computational physics"
+          ]
+        },
+        {
+          "name": "ai_terms",
+          "cap": 5,
+          "weight": 0.65,
+          "terms": [
+            "neural operator",
+            "surrogate model",
+            "machine learning",
+            "deep learning",
+            "foundation model",
+            "graph neural network",
+            "Fourier neural operator",
+            "differentiable simulation",
+            "physics-informed",
+            "PINN",
+            "active learning",
+            "generative model"
+          ]
+        }
+      ],
+      "require_all_groups": true,
+      "strong_rule": {"title_any": true},
+      "title_all_groups_bonus": 0.75,
+      "quota": 4
+    }
+  ],
+
+  "authors": {
+    "priority": []
+  },
+
+  "institutions": [
+    "MIT",
+    "Stanford",
+    "Caltech",
+    "UC Berkeley",
+    "CMU",
+    "ETH Zurich",
+    "Google DeepMind",
+    "Microsoft Research",
+    "Tsinghua"
+  ],
+
+  "research_profile": {
+    "primary_interests": [
+      "numerical methods for PDEs",
+      "high-performance scientific computing",
+      "neural operators and surrogate models",
+      "AI for Science discovery pipelines"
+    ],
+    "secondary_interests": [
+      "molecular dynamics simulation",
+      "climate and weather modeling",
+      "physics-informed machine learning",
+      "scientific foundation models"
+    ],
+    "current_projects": [
+      "描述你当前的研究项目,系统会优先推荐相关论文"
+    ],
+    "technical_stack": [
+      "Python",
+      "PyTorch",
+      "MPI",
+      "CUDA"
+    ]
+  },
+
+  "scoring_weights": {
+    "keyword_match": 0.20,
+    "author_match": 0.10,
+    "institution_match": 0.05,
+    "recency": 0.05,
+    "research_relevance": 0.15
+  },
+
+  "min_score": 4.2,
+  "max_papers_per_day": 18,
+  "request_delay_seconds": 3.0,
+  "topic_priority": ["scientific_computing", "ai_for_science"],
+  "require_detailed_analysis": true,
+  "update_time": "08:00",
+
+  "output_preferences": {
+    "include_metrics": true,
+    "highlight_sota": true,
+    "extract_numbers": true,
+    "show_code_links": true,
+    "show_related_work": true
+  },
+
+  "notification": {
+    "feishu_group": "YOUR_GROUP_CHAT_ID",
+    "urgent_threshold": 8.5,
+    "digest_mode": "daily"
+  }
+}

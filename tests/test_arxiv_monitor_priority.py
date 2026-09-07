@@ -2,14 +2,17 @@
 
 import unittest
 import json
+import sys
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 from arxiv_monitor_phd import ArxivMonitorPhD
 
 
-CONFIG = Path(__file__).resolve().parents[1] / "arxiv-monitor-config-phd.example.json"
+CONFIG = Path(__file__).resolve().parents[1] / "config" / "arxiv-monitor-config-phd.example.json"
 
 
 class ArxivMonitorPriorityTest(unittest.TestCase):
@@ -56,12 +59,12 @@ class ArxivMonitorPriorityTest(unittest.TestCase):
                     "system_terms": ["serving"] if ai_infra else [],
                     "strong_match": ai_infra,
                 },
-                "ai4sci": {
+                "ai4sci_infra": {
                     "score": 6.0 if ai4sci else 0.0,
                     "domains": ["computational physics"] if ai4sci else [],
                     "infra": ["HPC"] if ai4sci else [],
                 },
-                "hpc": {
+                "hpc_systems": {
                     "score": 7.0 if hpc else 0.0,
                     "anchors": ["MPI"] if hpc else [],
                     "mechanisms": ["collective communication"] if hpc else [],
