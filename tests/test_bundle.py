@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -32,6 +33,22 @@ def make_repo_copy(temporary_dir: str, with_local_config: bool = True) -> Path:
 
 
 class BundleTests(unittest.TestCase):
+    def test_direct_dependencies_match_lock(self) -> None:
+        pattern = r"^([A-Za-z0-9_.-]+)==([^\s\\]+)"
+        def pins(name):
+            return {
+                re.sub(r"[-_.]+", "-", package).lower(): version
+                for package, version in re.findall(
+                    pattern, (ROOT / name).read_text(encoding="utf-8"), re.MULTILINE
+                )
+            }
+        declared = pins("requirements.txt")
+        locked = pins("requirements.lock")
+        self.assertTrue(declared)
+        for package, version in declared.items():
+            with self.subTest(package=package):
+                self.assertEqual(locked.get(package), version)
+
     def test_templates_have_no_machine_specific_values(self) -> None:
         machine_prefix = "/" + "Users" + "/"
         for relative in (
