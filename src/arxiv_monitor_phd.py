@@ -290,6 +290,31 @@ class ArxivMonitorPhD:
         except Exception as e:
             print(f"保存推送记录失败: {e}")
     
+    def _pending_ids_path(self, day=None):
+        day = day or datetime.now().strftime('%Y%m%d')
+        return self._artifact_path('arxiv_pending_ids_' + day + '.json')
+
+    def _stage_pending_pushed(self, papers, day=None):
+        """Record what this run selected, without claiming it was delivered.
+
+        Staged ids deliberately do not suppress a later re-selection: when the
+        review or the send fails, the next run has to be able to pick the same
+        papers up again.
+        """
+        now = datetime.now().isoformat()
+        staged = {}
+        for paper in papers:
+            arxiv_id = self._paper_arxiv_id(paper)
+            if arxiv_id:
+                staged[arxiv_id] = now
+        path = self._pending_ids_path(day)
+        try:
+            with open(path, 'w', encoding='utf-8') as handle:
+                json.dump({'staged_at': now, 'ids': staged}, handle, ensure_ascii=False, indent=2)
+        except OSError as error:
+            print(f"保存待确认推送记录失败: {error}")
+        return staged
+
     def _mark_as_pushed(self, papers):
         """标记论文为已推送"""
         now = datetime.now().isoformat()
@@ -323,8 +348,18 @@ class ArxivMonitorPhD:
         now = datetime.now(parsed.tzinfo) if parsed.tzinfo else datetime.now()
         return parsed.date() == now.date()
     
-    def fetch_papers(self, days=1):
-        """获取最近N天的论文，API失败时自动回退到RSS"""
+    def fetch_papers(self, days=None):
+        """获取最近N天的论文，API失败时自动回退到RSS。
+
+        days=None 时窗口回溯到上次真正送达的报告为止（下限 DEFAULT_LOOKBACK_DAYS，
+        上限 MAX_LOOKBACK_DAYS 或配置的 max_catchup_days）。
+        """
+        if days is None:
+            days = catchup_days(
+                os.path.join(self.base_dir, 'arxiv_reports'),
+                cap=int(self.config.get('max_catchup_days') or MAX_LOOKBACK_DAYS),
+            )
+            print(f"  抓取窗口: 最近 {days} 天（回溯到上次成功送达）")
         all_papers = self._fetch_papers_api(days)
         
         if len(all_papers) == 0:
@@ -1318,8 +1353,97 @@ class ArxivMonitorPhD:
         return resolved_filename
 
 
+
+DEFAULT_LOOKBACK_DAYS = 3
+MAX_LOOKBACK_DAYS = 30
+
+
+def delivered_through(report_root):
+    """Date of the last report that actually reached the chat, or None.
+
+    sent.json is the only delivery receipt: a run that failed during review or
+    send leaves no entry, which is what tells a delivered day from a lost one.
+    """
+    path = os.path.join(str(report_root), 'sent.json')
+    try:
+        with open(path, encoding='utf-8') as handle:
+            state = json.load(handle) or {}
+    except (OSError, ValueError):
+        return None
+    latest = None
+    for entry in (state.get('sent') or {}).values():
+        if not isinstance(entry, dict):
+            continue
+        match = re.search(r'(\d{8})\.html$', str(entry.get('file_name', '')))
+        if not match:
+            continue
+        try:
+            day = datetime.strptime(match.group(1), '%Y%m%d').date()
+        except ValueError:
+            continue
+        if latest is None or day > latest:
+            latest = day
+    return latest
+
+
+def catchup_days(report_root, *, today=None, floor=DEFAULT_LOOKBACK_DAYS, cap=MAX_LOOKBACK_DAYS):
+    """How far back the window must reach so nothing undelivered is skipped.
+
+    Never narrower than the normal window and never wider than cap, so a long
+    outage degrades to "as much as we can still fetch" rather than an unbounded
+    query.
+    """
+    last = delivered_through(report_root)
+    if last is None:
+        return floor
+    target = today or datetime.now().date()
+    return max(floor, min(cap, (target - last).days))
+
+
+def commit_pending_pushed(day, base_dir):
+    """Move a day's staged ids into the pushed ledger, after delivery.
+
+    Returns the number of ids committed. A missing or already-committed staging
+    file is not an error: delivery can legitimately be retried.
+    """
+    pending = os.path.join(str(base_dir), 'arxiv_pending_ids_' + str(day) + '.json')
+    ledger = os.path.join(str(base_dir), 'arxiv_pushed_ids.json')
+    if not os.path.exists(pending):
+        return 0
+    try:
+        with open(pending, encoding='utf-8') as handle:
+            staged = (json.load(handle) or {}).get('ids') or {}
+    except (OSError, ValueError):
+        return 0
+    if not staged:
+        return 0
+    pushed = {}
+    if os.path.exists(ledger):
+        try:
+            with open(ledger, encoding='utf-8') as handle:
+                pushed = json.load(handle) or {}
+        except (OSError, ValueError):
+            pushed = {}
+    now = datetime.now().isoformat()
+    for arxiv_id in staged:
+        pushed.setdefault(arxiv_id, now)
+    with open(ledger, 'w', encoding='utf-8') as handle:
+        json.dump(pushed, handle, ensure_ascii=False, indent=2)
+    try:
+        os.replace(pending, pending + '.committed')
+    except OSError:
+        pass
+    return len(staged)
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Daily Paper Brief monitor for arXiv AI/HPC systems papers")
+    parser.add_argument(
+        '--days',
+        type=int,
+        default=None,
+        help='pin the lookback window in days; default reaches back to the last delivered report',
+    )
     parser.add_argument(
         '--redo-today',
         action='store_true',
@@ -1362,8 +1486,10 @@ def main(argv=None):
         monitor._archive_today_report()
         monitor._save_selected_papers([])
 
-        print("\n[1/4] 正在抓取论文(最近3天,含去重)...")
-        papers = monitor.fetch_papers(days=3)
+        print("\n[1/4] 正在抓取论文(窗口回溯到上次成功送达为止,含去重)...")
+        # days=None reaches back to the last report that actually reached the
+        # chat, so a day lost to a failed review is not silently skipped.
+        papers = monitor.fetch_papers(days=args.days)
         print(f"  共抓取 {len(papers)} 篇论文")
 
         if len(papers) == 0:
@@ -1386,9 +1512,11 @@ def main(argv=None):
         print("\n[4/4] 正在保存...")
         filename = monitor.save_report(report)
 
-        # 只有真正完成保存的这一趟运行才更新已推送记录。
-        monitor._mark_as_pushed(filtered_papers)
-        print(f"  已标记 {len(filtered_papers)} 篇论文为已推送")
+        # 抓取阶段只登记候选，不算已推送：评审、构建 HTML 和发送都在这之后，
+        # 任何一步失败时这些论文必须还能被下一趟重新选中。真正落账发生在飞书
+        # 返回 message_id 之后，由 arxiv_send_html_to_feishu 调 commit_pending_pushed。
+        monitor._stage_pending_pushed(filtered_papers)
+        print(f"  已登记 {len(filtered_papers)} 篇论文为待推送（发送成功后才计入已推送）")
 
         print("\n" + "=" * 50)
         print("任务完成！")
