@@ -347,6 +347,28 @@ def send_html(
         return {"ok": True, "skipped": False, "message_id": message_id, **metadata}
 
 
+
+def commit_delivery(report_path: Path, ledger_dir: Path) -> Optional[int]:
+    """Record this report's papers as pushed, now that Feishu has them.
+
+    Papers are staged at fetch time and only committed here, so a failed review
+    or send leaves them selectable by the next run. A failure to commit must not
+    turn a delivered report into a failed run, so it is reported and swallowed.
+    """
+    day = report_path.parent.name
+    if not day.isdigit():
+        return None
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from arxiv_monitor_phd import commit_pending_pushed
+
+        return commit_pending_pushed(day, str(ledger_dir))
+    except Exception as exc:  # noqa: BLE001 - never fail a delivered report
+        print(json.dumps({"ok": True, "commit_pushed_failed": str(exc)}, ensure_ascii=False),
+              file=sys.stderr)
+        return None
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--file", required=True, help="path to the standalone HTML report")
@@ -357,6 +379,10 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--receipt", help="build receipt; defaults beside the report")
     result.add_argument("--config", default=str(DEFAULT_CONFIG))
     result.add_argument("--state", help="idempotency state file; defaults to <report-root>/sent.json")
+    result.add_argument(
+        "--ledger-dir",
+        help="directory holding arxiv_pushed_ids.json; defaults to the report root's parent",
+    )
     result.add_argument("--force", action="store_true", help="send again to the same target")
     result.add_argument("--dry-run", action="store_true", help="validate only; do not read credentials or contact Feishu")
     return result
@@ -397,6 +423,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             state_path,
             force=args.force,
         )
+        if result.get("ok"):
+            ledger_dir = (
+                Path(args.ledger_dir).expanduser().resolve(strict=True)
+                if args.ledger_dir
+                else report_root.parent
+            )
+            committed = commit_delivery(report_path, ledger_dir)
+            if committed is not None:
+                result["committed_pushed_ids"] = committed
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (SendError, requests.RequestException, OSError) as exc:
